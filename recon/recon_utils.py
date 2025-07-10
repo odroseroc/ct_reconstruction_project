@@ -4,27 +4,27 @@ from skimage.transform import radon
 from scipy.ndimage import rotate
 
 def sinogramFromPhantom(phantom: np.ndarray, max_angle: float) -> tuple[np.ndarray, np.ndarray]:
-	"""
-	Creates a sinogram from the image of a phantom. The sinogram has the same size as the original phantom. Primarily used to test the reconstruction algorithms in this project.
+    """
+    Creates a sinogram from the image of a phantom. The sinogram has the same size as the original phantom. Primarily used to test the reconstruction algorithms in this project.
 
-	Parameters
-	----------
-	sinogram: np.ndarray
-    	Array of shape (n_detectors, n_angles). Each column corresponds to a projection at a specific angle.
-    	The number of detectors is typically equal to the height of the input image.
-	max_angle: float
-    	Maximum angle (in degrees) of the sampled projections. To create the sinogram, the phantom is sampled to generate projections at evenly-distributed angles ranging from 0 degrees through max_angle.
+    Parameters
+    ----------
+    sinogram: np.ndarray
+        Array of shape (n_detectors, n_angles). Each column corresponds to a projection at a specific angle.
+        The number of detectors is typically equal to the height of the input image.
+    max_angle: float
+        Maximum angle (in degrees) of the sampled projections. To create the sinogram, the phantom is sampled to generate projections at evenly-distributed angles ranging from 0 degrees through max_angle.
 	
-	Return
-	------
-	sinogram: np.ndarray
-		Matrix of size (m,n) containing the sinogram generated from the phantom. Each column (n) corresponds to a single projection at a given angle.
-	angles: np.ndarray
-    	Array of shape (n_angles,) containing the angles (in degrees) at which projections were taken.
+    Return
+    ------
+    sinogram: np.ndarray
+        Matrix of size (m,n) containing the sinogram generated from the phantom. Each column (n) corresponds to a single projection at a given angle.
+    angles: np.ndarray
+        Array of shape (n_angles,) containing the angles (in degrees) at which projections were taken.
 
-	Note
-	----
-	If the input image is not square, the number of detectors will correspond to the number of rows in the input image.
+    Note
+    ----
+    If the input image is not square, the number of detectors will correspond to the number of rows in the input image.
 	"""
 	angles = np.linspace(0., max_angle, max(phantom.shape), endpoint=False)
 	sinogram = radon(phantom, theta=angles, circle=True)

@@ -1,2 +1,4 @@
 # Ignore Python virtual environments
 ctenv/
+data/richmond/sep20_2003/
+unused/
