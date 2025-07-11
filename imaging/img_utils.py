@@ -18,7 +18,7 @@ def import_images(files: list[str]) -> list[np.ndarray]:
 
     return [io.imread(path) for path in files]
 
-def median_pixel_basis(imgs: list[np.ndarray]) -> np.ndarray:
+def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     """
     Determines the median value of a set of images, on a pixel by pixel basis.
 
