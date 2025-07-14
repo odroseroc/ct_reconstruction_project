@@ -1,6 +1,8 @@
 import numpy as np
 from skimage import io
 from pathlib import Path
+from typing import Union, List, Tuple
+from collections.abc  import Callable
 
 def import_images(files: list[Path]) -> list[np.ndarray]:
     """
@@ -39,3 +41,30 @@ def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     original_shape = imgs[0].shape
     imgs_stack = np.vstack([im.reshape((1,-1)) for im in imgs])
     return np.median(imgs_stack, axis=0).reshape(original_shape)
+
+def normalize_to_mean(imgs: Union[np.ndarray, List[np.ndarray]]) -> List[np.ndarray]:
+    """
+    Normalize one or more images by their mean intensity.
+
+    Each image is divided by its mean pixel value. If the input is a single image,
+    it is automatically wrapped into a list. If the mean of an image is zero,
+    the image is returned unchanged.
+
+    Parameters
+    ----------
+    imgs : np.ndarray or list of np.ndarray
+        A single image or a list of images to normalize. Each image must be a NumPy array.
+
+    Returns
+    -------
+    normalized_imgs : list of np.ndarray
+        The normalized images, with each image divided by its mean.
+
+    Notes
+    -----
+    If an image has a mean of zero, it is left unchanged to avoid division by zero.
+    """
+    if isinstance(imgs, np.ndarray):
+        imgs = [imgs]
+    means = [np.mean(img) for img in imgs]
+    return [img/mean if mean != 0 else img for img, mean in zip(imgs, means)]
