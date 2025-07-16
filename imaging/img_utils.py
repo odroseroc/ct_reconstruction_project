@@ -4,14 +4,15 @@ from pathlib import Path
 import glob
 from typing import Union, List, Tuple
 from collections.abc  import Callable
+from core.log_utils import no_op
 
-def import_images(paths: Union[List[str], str], log_fn: Callable = print) -> list[np.ndarray]:
+def import_images(paths: List[str] | str, log_fn: Callable = no_op) -> list[np.ndarray]:
     """
     Imports a list of images and loads them as NumPy arrays.
     
     Parameters
     ----------
-    files : list of strings or string
+    files : list of strings or string.
         Can be a list of path-like strings , a single path-like string or a glob-like argument indicating the path of the files to be imported
 
     Returns
@@ -23,10 +24,13 @@ def import_images(paths: Union[List[str], str], log_fn: Callable = print) -> lis
     if isinstance(paths, str):
         paths = glob.glob(paths)
 
+    if not paths:
+        raise FileNotFoundError("No files found matching the given path or pattern.")
+
     paths = [Path(path) for path in paths] # Convert always to posix path for compatibility
     imgs = [io.imread(path) for path in paths]
-    log_fn('Imported %d images'%len(paths))
-    return [io.imread(path) for path in paths]
+    log_fn('Imported %d image(s)'%len(paths))
+    return imgs
 
 def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     """
@@ -49,7 +53,21 @@ def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     imgs_stack = np.vstack([im.reshape((1,-1)) for im in imgs])
     return np.median(imgs_stack, axis=0).reshape(original_shape)
 
-def normalize_to_mean(imgs: Union[np.ndarray, List[np.ndarray]]) -> List[np.ndarray]:
+def scale_to_mean(img: np.ndarray,
+                  mean_value: float,
+                  img_mean: float = None,
+                  log_fn: Callable[[str],None] = no_op) -> np.ndarray:
+    """
+    Scales the values of an image such that its mean becomes mean_value.
+    Allows to parse the mean of the image as argument. This avoids repetition
+    if the mean of this image has been previously calculated.
+    """
+    if img_mean == None:
+        img_mean = np.mean(img)
+    log_fn('Image scaled to mean value '+str(mean_value))
+    return img*(mean_value/img_mean)
+
+def normalize_to_mean(imgs: np.ndarray | List[np.ndarray]) -> List[np.ndarray]:
     """
     Normalize one or more images by their mean intensity.
 
