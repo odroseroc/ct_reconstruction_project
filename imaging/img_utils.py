@@ -1,25 +1,32 @@
 import numpy as np
 from skimage import io
 from pathlib import Path
+import glob
 from typing import Union, List, Tuple
 from collections.abc  import Callable
 
-def import_images(files: list[Path]) -> list[np.ndarray]:
+def import_images(paths: Union[List[str], str], log_fn: Callable = print) -> list[np.ndarray]:
     """
-    Imports a list of image files and returns them as np.ndarray's
+    Imports a list of images and loads them as NumPy arrays.
     
     Parameters
     ----------
-    files : list[Path]
-        List of paths of the image files
+    files : list of strings or string
+        Can be a list of path-like strings , a single path-like string or a glob-like argument indicating the path of the files to be imported
 
     Returns
     -------
-    list[np.ndarray]
-        The images as arrays
+    List[np.ndarray]
+        List of images loaded as arrays.
     """
 
-    return [io.imread(path) for path in files]
+    if isinstance(paths, str):
+        paths = glob.glob(paths)
+
+    paths = [Path(path) for path in paths] # Convert always to posix path for compatibility
+    imgs = [io.imread(path) for path in paths]
+    log_fn('Imported %d images'%len(paths))
+    return [io.imread(path) for path in paths]
 
 def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     """
@@ -46,9 +53,7 @@ def normalize_to_mean(imgs: Union[np.ndarray, List[np.ndarray]]) -> List[np.ndar
     """
     Normalize one or more images by their mean intensity.
 
-    Each image is divided by its mean pixel value. If the input is a single image,
-    it is automatically wrapped into a list. If the mean of an image is zero,
-    the image is returned unchanged.
+    Each image is divided by its mean pixel value. If the input is a single image, it is automatically wrapped into a list. If the mean of an image is zero, the image is returned unchanged.
 
     Parameters
     ----------
@@ -66,5 +71,6 @@ def normalize_to_mean(imgs: Union[np.ndarray, List[np.ndarray]]) -> List[np.ndar
     """
     if isinstance(imgs, np.ndarray):
         imgs = [imgs]
+        
     means = [np.mean(img) for img in imgs]
     return [img/mean if mean != 0 else img for img, mean in zip(imgs, means)]
