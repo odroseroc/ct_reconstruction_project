@@ -1,17 +1,43 @@
-# CT Image Reconstruction from Simulated Projections
+# CT Reconstruction Project
 
-This project simulates a simplified CT acquisition process and implements image reconstruction algorithms including Filtered Backprojection (FBP) and iterative methods.
+**Status:** 🚧 *Under development*
 
-### 🔍 Features
-- Sinogram generation from 2D phantom images
-- Implementation of analytical (FBP) and iterative (ART/SIRT) reconstructions
-- Visualization and quality metrics
-- Clean modular Python code + Jupyter demos
+This repository contains core utilities for a **custom-built Computed Tomography (CT) scanner** currently under construction at the **Hard X-ray Laboratory, KTH Royal Institute of Technology**.
 
-### 🧪 Motivation
-Image reconstruction is central to medical imaging. This project demonstrates algorithmic understanding and practical skills relevant to industry applications in radiology and instrumentation.
+The project provides tools for **image preprocessing**, **calibration**, and **reconstruction**, and is designed to be eventually integrated into the scanner’s user interface, developed in parallel by another team member.
 
-### 🛠 Technologies
-Python, NumPy, SciPy, scikit-image, matplotlib
+---
 
-### 🚀 Try it
+## Current Features
+
+### Imaging Utilities
+- Import `.tiff` images from file paths or patterns
+- Basic image manipulation (e.g., normalization, mean scaling, addition)
+
+### Calibration Utilities
+- Generate **dark frames**
+- Generate **flat frames**
+
+### Reconstruction Utilities
+- Basic **backprojection** implementation 
+  *(Filtering not yet implemented)*
+
+---
+
+## 🗺️ Project Roadmap (Planned)
+- [ ] Add filtered backprojection
+- [ ] Implement automated calibration workflows
+- [ ] Integrate with GUI interface
+- [ ] Add unit tests and CI workflows
+
+---
+
+## Contributing
+
+This project is currently under internal development and is not open to public contributions at this time.
+
+---
+
+## License
+
+To be determined.
