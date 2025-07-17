@@ -7,7 +7,7 @@ from imaging.img_utils import *
 from core.log_utils import no_op
 
 def create_master_dark(input_imgs: list[np.ndarray] | list[str] | str,
-                       output_file: Union[str, Path] = './masterdark.tiff',
+                       output_file: str = './masterdark.tiff',
                        log_fn: Callable[[str],None] = print) -> np.ndarray:
     """
     Creates a master dark frame from a list of given images and exports it as
@@ -21,7 +21,7 @@ def create_master_dark(input_imgs: list[np.ndarray] | list[str] | str,
         List of dark frames from which the master dark frame will be created.
         Apart from arrays containing the images, this parameter can also receive
         a list of paths to the image files or a glob argument.
-    output_file: str or Path, optional  
+    output_file: str, optional  
         Path where the master dark frame is to be saved. If not given, it will
         be saved as masterdark.tif in the same directory as the original frames.
     log_fn: Callable, optional

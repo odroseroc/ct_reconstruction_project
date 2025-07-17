@@ -6,7 +6,8 @@ from typing import Union, List, Tuple
 from collections.abc  import Callable
 from core.log_utils import no_op
 
-def import_images(paths: List[str] | str, log_fn: Callable = no_op) -> list[np.ndarray]:
+def import_images(paths: List[str] | str, 
+                  log_fn: Callable[[str], None] = no_op) -> list[np.ndarray]:
     """
     Imports a list of images and loads them as NumPy arrays.
     
