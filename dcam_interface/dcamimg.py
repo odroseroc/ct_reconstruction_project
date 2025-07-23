@@ -1,3 +1,28 @@
+"""
+Python translation of Hamamatsu's DCamImg C API header.
+
+This file provides Python bindings to the DCamImg.dll dynamic
+library using ctypes. It is based on the original header `DCamLibM2.h`, 
+which was designed for a Windows XP-specific version of the library,
+provided by Hamamatsu for their camera/control modules. 
+
+Author: [Oscar Rosero]
+Date: [2025-07-23]
+
+Note:
+This is not original software; it is a direct interface translation 
+for use with Hamamatsu hardware such as the C10819-04 control module 
+and S10810 sensor unit. All rights to the original C API belong to 
+Hamamatsu Photonics.
+
+This code is provided without warranty and is intended for research,
+testing, or integration purposes only.
+
+**Caution:** This wrapper includes educated assumptions and manual mappings. 
+Where such assumptions were made, comments are included directly in the code to 
+indicate the adaptation. Use with care and validate on your specific hardware.
+"""
+
 import ctypes
 
 dcamimg = ctypes.WinDLL("DCamImg.dll")
