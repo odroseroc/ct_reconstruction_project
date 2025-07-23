@@ -2,8 +2,8 @@ import ctypes as ct
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-from dcamlib import *
-from dcamimg import *
+from dcam_interface.dcamlib import *
+from dcam_interface.dcamimg import *
 
 # Please note: when values are not parsed as reference, ctypes will 
 # convert to native python types. Thus, the variable to which we assign
