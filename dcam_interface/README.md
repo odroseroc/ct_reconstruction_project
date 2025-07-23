@@ -1,4 +1,4 @@
-# Hamamatsu DCamLib Python Interface
+# Hamamatsu DCamLib and DCamImg Python Interface
 
 This folder contains a Python interface to the `DCamLib.dll` and `DCamImg.dll` dynamic libraries used to control some Hamamatsu imaging equipment from the early to mid 2000s. It wraps the original C API using `ctypes`, making it accessible and usable directly from Python.
 
@@ -17,17 +17,3 @@ In this project, we use the interface to control a digital radiography system: t
 - Python 3.x
 - `DCamLib.dll` and `DCamImg.dll`must be available in your system path or current directory.
 - All the equipment drivers should be installed.
-
-## 🧪 Example Usage
-
-```python
-from dcam_interface import dcamlib
-
-# Initialize camera
-dcamlib.DcamInitialize()
-
-# Capture image...
-# Save image...
-
-# Release resources
-dcamlib.DcamUninitialize()
