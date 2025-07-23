@@ -1,5 +1,5 @@
 """
-Python translation of Hamamatsu's DCamLib C API heades.
+Python translation of Hamamatsu's DCamLib C API header.
 
 This file provides Python bindings to the DCamLib.dll dynamic 
 library using ctypes. It is based directly on the original
