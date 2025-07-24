@@ -1,21 +1,22 @@
 """
-Python translation of Hamamatsu's DCamImg C API headers.
+dcamlib.py
+===========
+===========
+This module provides a ctypes-based interface to the DCamLIB.dll library,
+which is used to control Hamamatsu's digital X-ray imaging units, such as
+the C10819-04 control module and S10810 sensor unit. It is a direct
+translation of the original C API header DCamLIBM2.h provided by Hamamatsu.
 
-This file provides Python bindings to the DCamImg.dll
-dynamic library using ctypes. It is based directly on the original
-C headers provided by Hamamatsu for their camera/control modules.
+It includes functions for capturing images, setting camera parameters,
+and managing image data.
+
+This code is not original software; it is a direct interface translation
+for use with Hamamatsu hardware. All rights to the original C API belong to
+Hamamatsu Photonics. The code is provided without warranty and is intended
+for research, testing, or integration purposes only.
 
 Author: [Oscar Rosero]
 Date: [2025-07-23]
-
-Note:
-This is not original software; it is a direct interface translation 
-for use with Hamamatsu hardware such as the C10819-04 control module 
-and S10810 sensor unit. All rights to the original C API belong to 
-Hamamatsu Photonics.
-
-This code is provided without warranty and is intended for research,
-testing, or integration purposes only.
 """
 
 import ctypes
@@ -234,3 +235,13 @@ dcamimg.DcamImgTiffSave8.restype = c_bool
 # ============================================================================
 dcamimg.DcamImgGetLastError.argtypes = []
 dcamimg.DcamImgGetLastError.restype = c_uint32
+
+#====================Function aliases (C-style)==============================
+# These aliases allow to call the functions like in the C API, without making
+# reference to the dcamimg ctype object required to load the library.
+DcamImgBmpSave8 = dcamimg.DcamImgBmpSave8
+DcamImgTiffGetInfo = dcamimg.DcamImgTiffGetInfo
+DcamImgTiffLoad = dcamimg.DcamImgTiffLoad
+DcamImgTiffSave = dcamimg.DcamImgTiffSave
+DcamImgTiffSave8 = dcamimg.DcamImgTiffSave8
+DcamImgGetLastError = dcamimg.DcamImgGetLastError

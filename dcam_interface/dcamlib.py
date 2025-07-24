@@ -1,27 +1,40 @@
 """
-Python translation of Hamamatsu's DCamLib C API header.
+dcamlib.py
+===========
+===========
+This module provides a ctypes-based interface to the DCamLIB.dll library,
+which is used to control Hamamatsu's digital X-ray imaging units, such as
+the C10819-04 control module and S10810 sensor unit. It is a direct
+translation of the original C API header DCamLIBM2.h, which was designed
+for a Windows XP-specific version of the library provided by Hamamatsu.
 
-This file provides Python bindings to the DCamLib.dll dynamic 
-library using ctypes. It is based directly on the original
-C header DCamLibM2.h, which was designed for a Windows XP-specific
-version of the library, provided by Hamamatsu for their camera/control 
-modules. The C header DCamLib.h was not provided with our hardware,
-so some educated assumptions and manual mappings were required.  Where
-such assumptions were made, comments are included directly in the code
-to indicate the adaptation. Use with care and validate on your specific 
+The C header DCamLib.h was not provided with our hardware, so some
+educated assumptions and manual mappings were required for constants that
+did not exist in DCamLIBM2 and functions with different names. Where such
+assumptions were made, comments are included directly in the code to
+indicate the adaptation. Use with care and validate on your specific
 hardware.
+
+This module is not original software; it is a direct interface translation
+for use with Hamamatsu hardware. All rights to the original C API belong
+to Hamamatsu Photonics. This code is provided without warranty and is
+intended for research, testing, or integration purposes only.
 
 Author: [Oscar Rosero]
 Date: [2025-07-23]
 
-Note:
-This is not original software; it is a direct interface translation 
-for use with Hamamatsu hardware such as the C10819-04 control module 
-and S10810 sensor unit. All rights to the original C API belong to 
-Hamamatsu Photonics.
+Information and copyright details provided with the original C API:
 
-This code is provided without warranty and is intended for research,
-testing, or integration purposes only.
+/*=============================================================================
+  Target Name	: Digital X-ray Imaging Unit Control Library DLL
+  Target Type	: DLL [DCamLIBM2.dll]
+				:	<<< Copyright(c) 2002-2006, HAMAMATSU PHOTONICS K.K. >>>
+				:
+  Created		: Dec. 24, 2002
+  Last Updated	: Jun. 25, 2006
+-------------------------------------------------------------------------------
+
+=============================================================================*/
 """
 
 import ctypes
@@ -793,3 +806,40 @@ dcam.DcamGetDeviceState.restype = c_bool
 #============================================================================
 dcam.DcamGetLastError.argtypes = []
 dcam.DcamGetLastError.restype = c_uint32
+
+
+#====================Function aliases (C-style)==============================
+# These aliases allow to call the functions like in the C API, without making
+# reference to the dcam ctype object required to load the library.
+DcamGetImageSize = dcam.DcamGetImageSize
+DcamGetBitPerPixel = dcam.DcamGetBitPerPixel
+DcamGetFrameBytes = dcam.DcamGetFrameBytes
+DcamCapture = dcam.DcamCapture
+DcamCaptureReverseX = dcam.DcamCaptureReverseX
+DcamStop = dcam.DcamStop
+DcamWait = dcam.DcamWait
+DcamSetGain = dcam.DcamSetGain
+DcamGetGain = dcam.DcamGetGain
+DcamSetOffset = dcam.DcamSetOffset
+DcamGetOffset = dcam.DcamGetOffset
+DcamSetDriveMode = dcam.DcamSetDriveMode
+DcamGetDriveMode = dcam.DcamGetDriveMode
+DcamSetBinning = dcam.DcamSetBinning
+DcamGetBinning = dcam.DcamGetBinning
+DcamSetTriggerMode = dcam.DcamSetTriggerMode
+DcamGetTriggerMode = dcam.DcamGetTriggerMode
+DcamSetTriggerPolarity = dcam.DcamSetTriggerPolarity
+DcamGetTriggerPolarity = dcam.DcamGetTriggerPolarity
+DcamSetExposureTime = dcam.DcamSetExposureTime
+DcamGetExposureTime = dcam.DcamGetExposureTime
+DcamSetCCDType = dcam.DcamSetCCDType
+DcamGetCCDType = dcam.DcamGetCCDType
+DcamLoadParameters = dcam.DcamLoadParameters
+DcamStoreParameters = dcam.DcamStoreParameters
+DcamGetVersion = dcam.DcamGetVersion
+DcamGetDriverVersion = dcam.DcamGetDriverVersion
+DcamGetFirmwareVersion = dcam.DcamGetFirmwareVersion
+DcamGetCameraInformation = dcam.DcamGetCameraInformation
+DcamGetTransferRateType = dcam.DcamGetTransferRateType
+DcamGetDeviceState = dcam.DcamGetDeviceState
+DcamGetLastError = dcam.DcamGetLastError
