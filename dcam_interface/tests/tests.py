@@ -8,11 +8,12 @@ import time
 import matplotlib.pyplot as plt
 from dcam_interface.dcamlib import *
 from dcam_interface.dcamimg import *
+from dcam_interface.constants import *
 
-# Please note: when values are not parsed as reference, ctypes will 
+# Please note: when values are not passed as reference, ctypes will 
 # convert to native python types. Thus, the variable to which we assign
 # the return of the function DcamGetLastError will be a Python int, not
-# a ctype.c_uint32. The values parsed as reference will still be ctypes
+# a ctype.c_uint32. The values passed as reference will still be ctypes
 # variables.
 
 def capture_img():
