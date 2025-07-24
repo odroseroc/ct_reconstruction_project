@@ -1,6 +1,6 @@
-from dcamlib import *
-from dcamimg import *
-from constants import *
+from dcam_interface.dcamlib import *
+from dcam_interface.dcamimg import *
+from dcam_interface.constants import *
 from functools import wraps
 
 def check_status(func):
@@ -15,5 +15,7 @@ def check_status(func):
             code = dwErrorCode.value if hasattr(dwErrorCode, 'value') else dwErrorCode
             message = RUNSTATUS_DICT.get(code, f"Unrecognized error code: {code}")
             raise Exception(f"DCam function '{func.__name__}' failed with error code {code}: {message}")
+        else:
+            print(f"DCam function '{func.__name__}' executed successfully.") # Just for debugging purposes
         return None
     return wrapper
