@@ -89,24 +89,6 @@ c_bool = ctypes.c_int  # BOOL is int in Windows
 #
 #######################################/
 
-########################################
-#   Convert Type
-DCAM_IMG_SAVECNVTYPE_AUTO	= 0		# Auto
-DCAM_IMG_SAVECNVTYPE_FIXED	= 1		# Fixed
-DCAM_IMG_SAVECNVTYPE_SHIFT	= 2		# Set bit shift
-
-########################################
-#   Error Code
-Code_Success				= 0		# Ended successfully
-Code_Unknown				= 1		# An unknown error has occurred
-Code_InvalidFileName		= 2		# Invalid Filename
-Code_InvalidParam			= 3		# Invalid Argument
-Code_ErrorFileOpen			= 4     # Error while opening file.
-Code_ErrorFileRead			= 5     # Error while reading file.
-Code_ErrorMemory			= 6		# Memory Error.
-Code_ErrorFileLoad			= 7		# Error file loading
-Code_ErrorFileSave			= 8		# Error file saving
-
 # ============================================================================
 # ¡ DcamImgBmpSave8
 # ---------------------------------------------------------------------------
