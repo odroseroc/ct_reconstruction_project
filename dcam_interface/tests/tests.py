@@ -23,31 +23,31 @@ def capture_img():
     nBitSize = ct.c_int()
     dwRetStatus = ct.c_uint32(DCAM_WAITSTATUS_UNCOMPLETED)
     # pDataBuff = ct.POINTER()
-    dcam.DcamSetDriveMode(DCAM_CCDDRVMODE_STANDBY, 3000)
-    dcam.DcamSetGain(1)
-    dcam.DcamSetOffset(10)
-    dcam.DcamSetBinning(DCAM_BINNING_1X1)
-    dcam.DcamSetCCDType(DCAM_CCD_TYPE0)
-    dcam.DcamSetTriggerMode(DCAM_TRIGMODE_INT)
-    dcam.DcamSetExposureTime(100)
+    dcamlib_dll.DcamSetDriveMode(DCAM_CCDDRVMODE_STANDBY, 3000)
+    dcamlib_dll.DcamSetGain(1)
+    dcamlib_dll.DcamSetOffset(10)
+    dcamlib_dll.DcamSetBinning(DCAM_BINNING_1X1)
+    dcamlib_dll.DcamSetCCDType(DCAM_CCD_TYPE0)
+    dcamlib_dll.DcamSetTriggerMode(DCAM_TRIGMODE_INT)
+    dcamlib_dll.DcamSetExposureTime(100)
     # dcam.DcamSetTriggerPolarity(DCAM_TRIGPOL_NEGATIVE)
 
-    dcam.DcamGetBitPerPixel(ct.byref(nBitSize))
+    dcamlib_dll.DcamGetBitPerPixel(ct.byref(nBitSize))
     print(f'Bit per pixel: {nBitSize.value}')
 
-    dcam.DcamGetImageSize(ct.byref(nWidth), ct.byref(nHeight))
+    dcamlib_dll.DcamGetImageSize(ct.byref(nWidth), ct.byref(nHeight))
     print(f'Image size: {nWidth.value} x {nHeight.value}')
 
     nImageSize = nWidth.value*nHeight.value
 
     pDataBuff = (ct.c_uint16 * nImageSize)() # Array of c_uint16, equivalente a WORD
 
-    dcam.DcamCapture(pDataBuff, ct.sizeof(pDataBuff))
+    dcamlib_dll.DcamCapture(pDataBuff, ct.sizeof(pDataBuff))
     iterations = 0
     print('Capturing image')
     sleep_time_sec = 10
     for i in range(0,sleep_time_sec,2):
-        dcam.DcamWait(ct.byref(dwRetStatus),5)
+        dcamlib_dll.DcamWait(ct.byref(dwRetStatus),5)
         print(f'{WAITSTATUS_DICT[dwRetStatus.value]}')
         time.sleep(2)
     
@@ -69,7 +69,7 @@ def capture_img():
     print(im_array)
 
     pFileName = ct.c_char_p(rb".\dcam_interface\tests\Sample.tiff")
-    dcamimg.DcamImgTiffSave(pFileName,pDataBuff,nWidth,nHeight,16,nBitSize)
+    dcamimg_dll.DcamImgTiffSave(pFileName,pDataBuff,nWidth,nHeight,16,nBitSize)
     print(f'Saved image to {pFileName.value.decode()}')
 
     plt.imshow(im_array, cmap='grey')
@@ -84,17 +84,17 @@ def capture_img():
 if __name__ == "__main__":
     print(f'Current working directory: {os.getcwd()}')
     # Initialization
-    dcam.DcamInitialize()
-    dcam.DcamOpen()
-    dcam.DcamSetDriveMode(DCAM_CCDDRVMODE_OPERATION, 3000)
+    dcamlib_dll.DcamInitialize()
+    dcamlib_dll.DcamOpen()
+    dcamlib_dll.DcamSetDriveMode(DCAM_CCDDRVMODE_OPERATION, 3000)
 
     dwErrCode = ct.c_uint32() # Variable to store error codes. Equivalent to Windows DOWRD
 
     # Check connection
     nState = ct.c_int()
 
-    if not dcam.DcamGetDeviceState(ct.byref(nState)):
-        dwErrCode = dcam.DcamGetLastError()
+    if not dcamlib_dll.DcamGetDeviceState(ct.byref(nState)):
+        dwErrCode = dcamlib_dll.DcamGetLastError()
 
     DEVSTATE_DICT = { DCAM_DEVSTATE_NON: 'Non-connection, No device found',
                     DCAM_DEVSTATE_DEVICE: 'Non-connection, Device found',
@@ -108,8 +108,8 @@ if __name__ == "__main__":
     # Get CCD drive mode
     nMode = ct.c_int()
 
-    if not dcam.DcamGetDriveMode(ct.byref(nMode)):
-        dwErrCode = dcam.DcamGetLastError()
+    if not dcamlib_dll.DcamGetDriveMode(ct.byref(nMode)):
+        dwErrCode = dcamlib_dll.DcamGetLastError()
 
     CCDMODE_DICT = {DCAM_CCDDRVMODE_IDLE: 'Idle',
                     DCAM_CCDDRVMODE_OPERATION: 'Operation',
@@ -123,8 +123,8 @@ if __name__ == "__main__":
                     DCAM_CCD_TYPE1: '1708 x 1202 (1700 x 1200) S8985 S10811',
                     DCAM_CCD_TYPE2: ' 608 x  402 ( 600 x  400) S7368-01'}
     nType = ct.c_int()
-    if not dcam.DcamGetCCDType(ct.byref(nType)):
-        dwErrCode = dcam.DcamGetLastError()
+    if not dcamlib_dll.DcamGetCCDType(ct.byref(nType)):
+        dwErrCode = dcamlib_dll.DcamGetLastError()
     print(f'CCD sensor type: {nType.value}: {CCDTYPE_DICT[nType.value]}')
 
     # Dictionaries to translate constants
@@ -132,6 +132,6 @@ if __name__ == "__main__":
                     DCAM_WAITSTATUS_COMPLETED: 'Image acquisition is complete.'}
     capture_img()
 
-    dcam.DcamStop()
-    dcam.DcamClose()
-    dcam.DcamUninitialize()
+    dcamlib_dll.DcamStop()
+    dcamlib_dll.DcamClose()
+    dcamlib_dll.DcamUninitialize()

@@ -40,7 +40,7 @@ Information and copyright details provided with the original C API:
 import ctypes
 
 # Load DLL
-dcam = ctypes.WinDLL("DCamLIB.dll") # WinDLL used when metod is __stdcall
+dcamlib_dll = ctypes.WinDLL("DCamLIB.dll") # WinDLL used when metod is __stdcall
 
 # Alias for frequently used tyes
 c_int = ctypes.c_int
@@ -65,8 +65,8 @@ c_bool = ctypes.c_int  # BOOL is int in Windows
 #          2.  An error is issued if the library has already been initialized.
 #          3.  Only one process can use this library.
 #============================================================================
-dcam.DcamInitialize.argtypes = []
-dcam.DcamInitialize.restype = c_bool
+dcamlib_dll.DcamInitialize.argtypes = []
+dcamlib_dll.DcamInitialize.restype = c_bool
 
 #============================================================================
 # DcamUninitialize()
@@ -81,8 +81,8 @@ dcam.DcamInitialize.restype = c_bool
 # [Note]
 #          Call this function when quitting the program or the DCamLIB library is not needed.
 #============================================================================
-dcam.DcamUninitialize.argtypes = []
-dcam.DcamUninitialize.restype = c_bool
+dcamlib_dll.DcamUninitialize.argtypes = []
+dcamlib_dll.DcamUninitialize.restype = c_bool
 
 #============================================================================
 # DcamOpen()
@@ -96,8 +96,8 @@ dcam.DcamUninitialize.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamOpen.argtypes = []
-dcam.DcamOpen.restype = c_bool
+dcamlib_dll.DcamOpen.argtypes = []
+dcamlib_dll.DcamOpen.restype = c_bool
 
 #============================================================================
 # DcamClose()
@@ -111,8 +111,8 @@ dcam.DcamOpen.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamClose.argtypes = []
-dcam.DcamClose.restype = c_bool
+dcamlib_dll.DcamClose.argtypes = []
+dcamlib_dll.DcamClose.restype = c_bool
 
 #============================================================================
 # DcamGetImageSize()
@@ -129,8 +129,8 @@ dcam.DcamClose.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetImageSize.argtypes = [ctypes.POINTER(c_int), ctypes.POINTER(c_int)]
-dcam.DcamGetImageSize.restype = c_bool
+dcamlib_dll.DcamGetImageSize.argtypes = [ctypes.POINTER(c_int), ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetImageSize.restype = c_bool
 
 #============================================================================
 # DcamGetBitPerPixel()
@@ -150,8 +150,8 @@ dcam.DcamGetImageSize.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetBitPerPixel.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetBitPerPixel.restype = c_bool
+dcamlib_dll.DcamGetBitPerPixel.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetBitPerPixel.restype = c_bool
 
 #============================================================================
 # DcamGetFrameBytes()
@@ -166,8 +166,8 @@ dcam.DcamGetBitPerPixel.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetFrameBytes.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetFrameBytes.restype = c_bool
+dcamlib_dll.DcamGetFrameBytes.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetFrameBytes.restype = c_bool
 
 #============================================================================
 # DcamCapture()
@@ -187,8 +187,8 @@ dcam.DcamGetFrameBytes.restype = c_bool
 #             use the DcamWait function to check whether image acquisition is complete.
 #          2. The necessary buffer size can be obtained with the DcamGetFrameBytes function.
 #============================================================================
-dcam.DcamCapture.argtypes = [c_void_p, c_int]
-dcam.DcamCapture.restype = c_bool
+dcamlib_dll.DcamCapture.argtypes = [c_void_p, c_int]
+dcamlib_dll.DcamCapture.restype = c_bool
 
 #============================================================================
 # DcamCaptureReverseX()
@@ -208,8 +208,8 @@ dcam.DcamCapture.restype = c_bool
 #             use the DcamWait function to check whether image acquisition is complete.
 #          2. The necessary buffer size can be obtained with the DcamGetFrameBytes function.
 #============================================================================
-dcam.DcamCaptureReverseX.argtypes = [c_void_p, c_int]
-dcam.DcamCaptureReverseX.restype = c_bool
+dcamlib_dll.DcamCaptureReverseX.argtypes = [c_void_p, c_int]
+dcamlib_dll.DcamCaptureReverseX.restype = c_bool
 
 #============================================================================
 # DcamStop()
@@ -223,8 +223,8 @@ dcam.DcamCaptureReverseX.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamStop.argtypes = []
-dcam.DcamStop.restype = c_bool
+dcamlib_dll.DcamStop.argtypes = []
+dcamlib_dll.DcamStop.restype = c_bool
 
 #============================================================================
 # DcamWait()
@@ -253,8 +253,8 @@ dcam.DcamStop.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamWait.argtypes = [ctypes.POINTER(c_uint32), c_int]
-dcam.DcamWait.restype = c_bool
+dcamlib_dll.DcamWait.argtypes = [ctypes.POINTER(c_uint32), c_int]
+dcamlib_dll.DcamWait.restype = c_bool
 
 #============================================================================
 # DcamSetGain()
@@ -268,8 +268,8 @@ dcam.DcamWait.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetGain.argtypes = [c_int]
-dcam.DcamSetGain.restype = c_bool
+dcamlib_dll.DcamSetGain.argtypes = [c_int]
+dcamlib_dll.DcamSetGain.restype = c_bool
 
 #============================================================================
 # DcamGetGain()
@@ -284,8 +284,8 @@ dcam.DcamSetGain.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetGain.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetGain.restype = c_bool
+dcamlib_dll.DcamGetGain.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetGain.restype = c_bool
 
 #============================================================================
 # DcamSetOffset()
@@ -299,8 +299,8 @@ dcam.DcamGetGain.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetOffset.argtypes = [c_int]
-dcam.DcamSetOffset.restype = c_bool
+dcamlib_dll.DcamSetOffset.argtypes = [c_int]
+dcamlib_dll.DcamSetOffset.restype = c_bool
 
 #============================================================================
 # DcamGetOffset()
@@ -315,8 +315,8 @@ dcam.DcamSetOffset.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetOffset.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetOffset.restype = c_bool
+dcamlib_dll.DcamGetOffset.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetOffset.restype = c_bool
 
 #============================================================================
 # DcamSetDriveMode()
@@ -337,8 +337,8 @@ dcam.DcamGetOffset.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetDriveMode.argtypes = [c_int, c_int]
-dcam.DcamSetDriveMode.restype = c_bool
+dcamlib_dll.DcamSetDriveMode.argtypes = [c_int, c_int]
+dcamlib_dll.DcamSetDriveMode.restype = c_bool
 
 #============================================================================
 # DcamGetDriveMode()
@@ -355,8 +355,8 @@ dcam.DcamSetDriveMode.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetDriveMode.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetDriveMode.restype = c_bool
+dcamlib_dll.DcamGetDriveMode.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetDriveMode.restype = c_bool
 
 #============================================================================
 # DcamSetBinning()
@@ -375,8 +375,8 @@ dcam.DcamGetDriveMode.restype = c_bool
 #          When this function is run, the number of bytes per frame size may change. 
 #          Check the frame size with the DcamGetFrameBytes function.
 #============================================================================
-dcam.DcamSetBinning.argtypes = [c_int]
-dcam.DcamSetBinning.restype = c_bool
+dcamlib_dll.DcamSetBinning.argtypes = [c_int]
+dcamlib_dll.DcamSetBinning.restype = c_bool
 
 #============================================================================
 # DcamGetBinning()
@@ -395,8 +395,8 @@ dcam.DcamSetBinning.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetBinning.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetBinning.restype = c_bool
+dcamlib_dll.DcamGetBinning.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetBinning.restype = c_bool
 
 #============================================================================
 # DcamSetTriggerMode()
@@ -414,8 +414,8 @@ dcam.DcamGetBinning.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetTriggerMode.argtypes = [c_int]
-dcam.DcamSetTriggerMode.restype = c_bool
+dcamlib_dll.DcamSetTriggerMode.argtypes = [c_int]
+dcamlib_dll.DcamSetTriggerMode.restype = c_bool
 
 #============================================================================
 # DcamGetTriggerMode()
@@ -434,8 +434,8 @@ dcam.DcamSetTriggerMode.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetTriggerMode.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetTriggerMode.restype = c_bool
+dcamlib_dll.DcamGetTriggerMode.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetTriggerMode.restype = c_bool
 
 #============================================================================
 # DcamSetTriggerPolarity()
@@ -452,8 +452,8 @@ dcam.DcamGetTriggerMode.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetTriggerPolarity.argtypes = [c_int]
-dcam.DcamSetTriggerPolarity.restype = c_bool
+dcamlib_dll.DcamSetTriggerPolarity.argtypes = [c_int]
+dcamlib_dll.DcamSetTriggerPolarity.restype = c_bool
 
 #============================================================================
 # DcamGetTriggerPolarity()
@@ -471,8 +471,8 @@ dcam.DcamSetTriggerPolarity.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetTriggerPolarity.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetTriggerPolarity.restype = c_bool
+dcamlib_dll.DcamGetTriggerPolarity.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetTriggerPolarity.restype = c_bool
 
 #============================================================================
 # DcamSetExposureTime()
@@ -486,8 +486,8 @@ dcam.DcamGetTriggerPolarity.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamSetExposureTime.argtypes = [c_int]
-dcam.DcamSetExposureTime.restype = c_bool
+dcamlib_dll.DcamSetExposureTime.argtypes = [c_int]
+dcamlib_dll.DcamSetExposureTime.restype = c_bool
 
 #============================================================================
 # DcamGetExposureTime()
@@ -502,8 +502,8 @@ dcam.DcamSetExposureTime.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetExposureTime.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetExposureTime.restype = c_bool
+dcamlib_dll.DcamGetExposureTime.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetExposureTime.restype = c_bool
 
 #============================================================================
 # DcamSetCCDType()
@@ -522,8 +522,8 @@ dcam.DcamGetExposureTime.restype = c_bool
 #          When this function is run, the number of bytes per frame size may change. 
 #          Check the frame size with the DcamGetFrameBytes function.
 #============================================================================
-dcam.DcamSetCCDType.argtypes = [c_int]
-dcam.DcamSetCCDType.restype = c_bool
+dcamlib_dll.DcamSetCCDType.argtypes = [c_int]
+dcamlib_dll.DcamSetCCDType.restype = c_bool
 
 #============================================================================
 # DcamGetCCDType()
@@ -542,8 +542,8 @@ dcam.DcamSetCCDType.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetCCDType.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetCCDType.restype = c_bool
+dcamlib_dll.DcamGetCCDType.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetCCDType.restype = c_bool
 
 #============================================================================
 # DcamLoadParameters()
@@ -560,8 +560,8 @@ dcam.DcamGetCCDType.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamLoadParameters.argtypes = [c_int]
-dcam.DcamLoadParameters.restype = c_bool
+dcamlib_dll.DcamLoadParameters.argtypes = [c_int]
+dcamlib_dll.DcamLoadParameters.restype = c_bool
 
 #============================================================================
 # DcamStoreParameters()
@@ -575,8 +575,8 @@ dcam.DcamLoadParameters.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamStoreParameters.argtypes = []
-dcam.DcamStoreParameters.restype = c_bool
+dcamlib_dll.DcamStoreParameters.argtypes = []
+dcamlib_dll.DcamStoreParameters.restype = c_bool
 
 #============================================================================
 # DcamGetVersion()
@@ -592,8 +592,8 @@ dcam.DcamStoreParameters.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetVersion.argtypes = [ctypes.POINTER(c_char), c_int]
-dcam.DcamGetVersion.restype = c_bool
+dcamlib_dll.DcamGetVersion.argtypes = [ctypes.POINTER(c_char), c_int]
+dcamlib_dll.DcamGetVersion.restype = c_bool
 
 #============================================================================
 # DcamGetDriverVersion()
@@ -609,8 +609,8 @@ dcam.DcamGetVersion.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetDriverVersion.argtypes = [ctypes.POINTER(c_char), c_int]
-dcam.DcamGetDriverVersion.restype = c_bool
+dcamlib_dll.DcamGetDriverVersion.argtypes = [ctypes.POINTER(c_char), c_int]
+dcamlib_dll.DcamGetDriverVersion.restype = c_bool
 
 #============================================================================
 # DcamGetFirmwareVersion()
@@ -626,8 +626,8 @@ dcam.DcamGetDriverVersion.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetFirmwareVersion.argtypes = [ctypes.POINTER(c_char), c_int]
-dcam.DcamGetFirmwareVersion.restype = c_bool
+dcamlib_dll.DcamGetFirmwareVersion.argtypes = [ctypes.POINTER(c_char), c_int]
+dcamlib_dll.DcamGetFirmwareVersion.restype = c_bool
 
 # WARNING! DcamGetCameraInformation in DCamLib apears to have replaced DcamGetUnitInformation from DCamLibM2. Both functions have the same signature in the manual, but at the moment of writing this script, we only had access to DCamLibM2.h, so we cannot be comlete certain of this deffinition.
 #============================================================================
@@ -649,8 +649,8 @@ dcam.DcamGetFirmwareVersion.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetCameraInformation.argtypes = [c_int, ctypes.POINTER(c_char), c_int]
-dcam.DcamGetCameraInformation.restype = c_bool
+dcamlib_dll.DcamGetCameraInformation.argtypes = [c_int, ctypes.POINTER(c_char), c_int]
+dcamlib_dll.DcamGetCameraInformation.restype = c_bool
 
 #============================================================================
 # DcamGetTransferRateType()
@@ -668,8 +668,8 @@ dcam.DcamGetCameraInformation.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetTransferRateType.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetTransferRateType.restype = c_bool
+dcamlib_dll.DcamGetTransferRateType.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetTransferRateType.restype = c_bool
 
 # WARNING! DcamGetDeviceState in DCamLib apears to have replaced DcamGetUnitState from DCamLibM2. Both functions have the same signature, but at the moment of writing this script, we only had access to DCamLibM2.h, so we cannot be comlete certain of this deffinition.
 #============================================================================
@@ -691,8 +691,8 @@ dcam.DcamGetTransferRateType.restype = c_bool
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
 #============================================================================
-dcam.DcamGetDeviceState.argtypes = [ctypes.POINTER(c_int)]
-dcam.DcamGetDeviceState.restype = c_bool
+dcamlib_dll.DcamGetDeviceState.argtypes = [ctypes.POINTER(c_int)]
+dcamlib_dll.DcamGetDeviceState.restype = c_bool
 
 #============================================================================
 # DcamGetLastError()
@@ -705,42 +705,5 @@ dcam.DcamGetDeviceState.restype = c_bool
 #          descriptions of error codes.
 # [Note]
 #============================================================================
-dcam.DcamGetLastError.argtypes = []
-dcam.DcamGetLastError.restype = c_uint32
-
-
-#====================Function aliases (C-style)==============================
-# These aliases allow to call the functions like in the C API, without making
-# reference to the dcam ctype object required to load the library.
-DcamGetImageSize = dcam.DcamGetImageSize
-DcamGetBitPerPixel = dcam.DcamGetBitPerPixel
-DcamGetFrameBytes = dcam.DcamGetFrameBytes
-DcamCapture = dcam.DcamCapture
-DcamCaptureReverseX = dcam.DcamCaptureReverseX
-DcamStop = dcam.DcamStop
-DcamWait = dcam.DcamWait
-DcamSetGain = dcam.DcamSetGain
-DcamGetGain = dcam.DcamGetGain
-DcamSetOffset = dcam.DcamSetOffset
-DcamGetOffset = dcam.DcamGetOffset
-DcamSetDriveMode = dcam.DcamSetDriveMode
-DcamGetDriveMode = dcam.DcamGetDriveMode
-DcamSetBinning = dcam.DcamSetBinning
-DcamGetBinning = dcam.DcamGetBinning
-DcamSetTriggerMode = dcam.DcamSetTriggerMode
-DcamGetTriggerMode = dcam.DcamGetTriggerMode
-DcamSetTriggerPolarity = dcam.DcamSetTriggerPolarity
-DcamGetTriggerPolarity = dcam.DcamGetTriggerPolarity
-DcamSetExposureTime = dcam.DcamSetExposureTime
-DcamGetExposureTime = dcam.DcamGetExposureTime
-DcamSetCCDType = dcam.DcamSetCCDType
-DcamGetCCDType = dcam.DcamGetCCDType
-DcamLoadParameters = dcam.DcamLoadParameters
-DcamStoreParameters = dcam.DcamStoreParameters
-DcamGetVersion = dcam.DcamGetVersion
-DcamGetDriverVersion = dcam.DcamGetDriverVersion
-DcamGetFirmwareVersion = dcam.DcamGetFirmwareVersion
-DcamGetCameraInformation = dcam.DcamGetCameraInformation
-DcamGetTransferRateType = dcam.DcamGetTransferRateType
-DcamGetDeviceState = dcam.DcamGetDeviceState
-DcamGetLastError = dcam.DcamGetLastError
+dcamlib_dll.DcamGetLastError.argtypes = []
+dcamlib_dll.DcamGetLastError.restype = c_uint32

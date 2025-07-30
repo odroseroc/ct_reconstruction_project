@@ -21,7 +21,7 @@ Date: [2025-07-23]
 
 import ctypes
 
-dcamimg = ctypes.WinDLL("DCamImg.dll")
+dcamimg_dll = ctypes.WinDLL("DCamImg.dll")
 
 # Alias for frequently used tyes
 c_int = ctypes.c_int
@@ -109,8 +109,8 @@ c_bool = ctypes.c_int  # BOOL is int in Windows
 # < Contents >	
 #
 # ============================================================================
-dcamimg.DcamImgBmpSave8.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int, c_int, c_int]
-dcamimg.DcamImgBmpSave8.restype = c_bool
+dcamimg_dll.DcamImgBmpSave8.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int, c_int, c_int]
+dcamimg_dll.DcamImgBmpSave8.restype = c_bool
 
 # ============================================================================
 #@@ @DcamImgTiffGetInfo
@@ -129,8 +129,8 @@ dcamimg.DcamImgBmpSave8.restype = c_bool
 #
 #    < Note >      Nothing
 # ============================================================================
-dcamimg.DcamImgTiffGetInfo.argtypes = [c_char_p, ctypes.POINTER(c_int), ctypes.POINTER(c_int), ctypes.POINTER(c_int), ctypes.POINTER(c_int)]
-dcamimg.DcamImgTiffGetInfo.restype = c_bool
+dcamimg_dll.DcamImgTiffGetInfo.argtypes = [c_char_p, ctypes.POINTER(c_int), ctypes.POINTER(c_int), ctypes.POINTER(c_int), ctypes.POINTER(c_int)]
+dcamimg_dll.DcamImgTiffGetInfo.restype = c_bool
 
 # ============================================================================
 #@@ @DcamImgTiffLoad
@@ -146,8 +146,8 @@ dcamimg.DcamImgTiffGetInfo.restype = c_bool
 #
 #    < Note >      Nothing
 # ============================================================================
-dcamimg.DcamImgTiffLoad.argtypes = [c_char_p, c_void_p, c_int]
-dcamimg.DcamImgTiffLoad.restype = c_bool
+dcamimg_dll.DcamImgTiffLoad.argtypes = [c_char_p, c_void_p, c_int]
+dcamimg_dll.DcamImgTiffLoad.restype = c_bool
 
 # ============================================================================
 #@@ @DcamImgTiffSave
@@ -170,8 +170,8 @@ dcamimg.DcamImgTiffLoad.restype = c_bool
 #    < Note >      Note that images in TIFF files are saved in Top Bottom 
 #					order.
 # ===========================================================================
-dcamimg.DcamImgTiffSave.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int]
-dcamimg.DcamImgTiffSave.restype = c_bool
+dcamimg_dll.DcamImgTiffSave.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int]
+dcamimg_dll.DcamImgTiffSave.restype = c_bool
 
 # ============================================================================
 #@@ @DcamImgTiffSave8
@@ -202,8 +202,8 @@ dcamimg.DcamImgTiffSave.restype = c_bool
 #					order.
 #				 
 # ============================================================================
-dcamimg.DcamImgTiffSave8.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int, c_int, c_int]
-dcamimg.DcamImgTiffSave8.restype = c_bool
+dcamimg_dll.DcamImgTiffSave8.argtypes = [c_char_p, c_void_p, c_int, c_int, c_int, c_int, c_int, c_int]
+dcamimg_dll.DcamImgTiffSave8.restype = c_bool
 
 # ============================================================================
 # ¡ DcamImgGetLastError
@@ -215,15 +215,5 @@ dcamimg.DcamImgTiffSave8.restype = c_bool
 # < Contents >	
 #
 # ============================================================================
-dcamimg.DcamImgGetLastError.argtypes = []
-dcamimg.DcamImgGetLastError.restype = c_uint32
-
-#====================Function aliases (C-style)==============================
-# These aliases allow to call the functions like in the C API, without making
-# reference to the dcamimg ctype object required to load the library.
-DcamImgBmpSave8 = dcamimg.DcamImgBmpSave8
-DcamImgTiffGetInfo = dcamimg.DcamImgTiffGetInfo
-DcamImgTiffLoad = dcamimg.DcamImgTiffLoad
-DcamImgTiffSave = dcamimg.DcamImgTiffSave
-DcamImgTiffSave8 = dcamimg.DcamImgTiffSave8
-DcamImgGetLastError = dcamimg.DcamImgGetLastError
+dcamimg_dll.DcamImgGetLastError.argtypes = []
+dcamimg_dll.DcamImgGetLastError.restype = c_uint32

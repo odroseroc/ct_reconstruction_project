@@ -14,15 +14,15 @@ from dcam_interface.dcam_utils import check_status
 @check_status
 def dcamgetstate():
     nState = ct.c_int()
-    dcam.DcamGetDeviceState(ct.byref(nState))
+    dcamlib_dll.DcamGetDeviceState(ct.byref(nState))
     return nState.value
 
-dcam.DcamInitialize()
-dcam.DcamOpen()
-dcam.DcamSetDriveMode(DCAM_CCDDRVMODE_OPERATION, 3000)
+dcamlib_dll.DcamInitialize()
+dcamlib_dll.DcamOpen()
+dcamlib_dll.DcamSetDriveMode(DCAM_CCDDRVMODE_OPERATION, 3000)
 
 print(dcamgetstate()) # check_status esta mal implementada si espero usarla como en este ejemplo. Deberia estar decorando a la funcion interna.
 
-dcam.DcamStop()
-dcam.DcamClose()
-dcam.DcamUninitialize()
+dcamlib_dll.DcamStop()
+dcamlib_dll.DcamClose()
+dcamlib_dll.DcamUninitialize()
