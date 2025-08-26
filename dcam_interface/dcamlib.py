@@ -1,27 +1,40 @@
 """
-Python translation of Hamamatsu's DCamLib C API header.
+dcamlib.py
+===========
+===========
+This module provides a ctypes-based interface to the DCamLIB.dll library,
+which is used to control Hamamatsu's digital X-ray imaging units, such as
+the C10819-04 control module and S10810 sensor unit. It is a direct
+translation of the original C API header DCamLIBM2.h, which was designed
+for a Windows XP-specific version of the library provided by Hamamatsu.
 
-This file provides Python bindings to the DCamLib.dll dynamic 
-library using ctypes. It is based directly on the original
-C header DCamLibM2.h, which was designed for a Windows XP-specific
-version of the library, provided by Hamamatsu for their camera/control 
-modules. The C header DCamLib.h was not provided with our hardware,
-so some educated assumptions and manual mappings were required.  Where
-such assumptions were made, comments are included directly in the code
-to indicate the adaptation. Use with care and validate on your specific 
+The C header DCamLib.h was not provided with our hardware, so some
+educated assumptions and manual mappings were required for constants that
+did not exist in DCamLIBM2 and functions with different names. Where such
+assumptions were made, comments are included directly in the code to
+indicate the adaptation. Use with care and validate on your specific
 hardware.
+
+This module is not original software; it is a direct interface translation
+for use with Hamamatsu hardware. All rights to the original C API belong
+to Hamamatsu Photonics. This code is provided without warranty and is
+intended for research, testing, or integration purposes only.
 
 Author: [Oscar Rosero]
 Date: [2025-07-23]
 
-Note:
-This is not original software; it is a direct interface translation 
-for use with Hamamatsu hardware such as the C10819-04 control module 
-and S10810 sensor unit. All rights to the original C API belong to 
-Hamamatsu Photonics.
+Information and copyright details provided with the original C API:
 
-This code is provided without warranty and is intended for research,
-testing, or integration purposes only.
+/*=============================================================================
+  Target Name	: Digital X-ray Imaging Unit Control Library DLL
+  Target Type	: DLL [DCamLIBM2.dll]
+				:	<<< Copyright(c) 2002-2006, HAMAMATSU PHOTONICS K.K. >>>
+				:
+  Created		: Dec. 24, 2002
+  Last Updated	: Jun. 25, 2006
+-------------------------------------------------------------------------------
+
+=============================================================================*/
 """
 
 import ctypes
@@ -36,105 +49,6 @@ c_void_p = ctypes.c_void_p
 c_char_p = ctypes.c_char_p
 c_uint32 = ctypes.c_uint32  # DWORD
 c_bool = ctypes.c_int  # BOOL is int in Windows
-
-#==============================================================================
-# CONSTANTS DECLARATION
-#==============================================================================
-
-###############################################################################
-# [The number of pixel] (In DCamLibM2 this constants are prefixed wih DCAM, rather than DCAMLIB)
-DCAMLIB_BITPIXEL_8 = 8     #  8 Bit
-DCAMLIB_BITPIXEL_10 = 10   # 10 Bit
-DCAMLIB_BITPIXEL_12 = 12   # 12 Bit
-# DCAM_BITPIXEL_16 = 16   # 16 Bit  **Does not appear in DCamLib manual
-
-###############################################################################
-# [Image acquisition]
-DCAM_WAITSTATUS_COMPLETED = 0   # Image acquisition is complete.
-DCAM_WAITSTATUS_UNCOMPLETED = 1 # Image acquisition is not complete.
-
-DCAM_WAIT_INFINITE = -1         # Wait until image acquisition is complete.
-
-###############################################################################
-# [Device state] (This has been modified from DCamLibM2, where 'unit' is used instead of device)
-DCAM_DEVSTATE_NON     = 0     # Non-connection, No device found
-DCAM_DEVSTATE_DEVICE    = 1     # Non-connection, device found
-DCAM_DEVSTATE_NODEVICE  = 2     # Connection, No device found
-DCAM_DEVSTATE_CONNECT = 3     # Connection, device found
-DCAM_DEVSTATE_BOOT    = 4     # Connection, device found(during the boot process)
-
-###############################################################################
-# [CCD drive mode] (In DCamLibM2 the term 'Sensor drive mode' is used. The constants are called DCAM_DRVMODE_* and the OPERATION state does not exist.)
-# TODO: Confirmation required for Operaon mode.
-DCAM_CCDDRVMODE_IDLE = 0   # Idle / Sleep
-DCAM_CCDDRVMODE_STANDBY = 1    # Standby
-DCAM_CCDDRVMODE_OPERATION = 1 # Operation * In he manual for DCamLib it is specified that Operation and Standby are te same modes.
-
-###############################################################################
-# [Bining type]
-DCAM_BINNING_1X1 = 0     # 1x1
-DCAM_BINNING_2X2 = 1     # 2x2
-
-###############################################################################
-# [Trigger mode]
-DCAM_TRIGMODE_INT        = 0     # Internal Mode
-DCAM_TRIGMODE_EXT_LEVEL1 = 2     # External Trigger Level Mode
-DCAM_TRIGMODE_EXT_EDGE1  = 4     # External Trigger Edge Mode
-# Constants not defined in DCamLibM2
-# TODO: Map these constants
-DCAM_TRIGMODE_EXT_START = 0
-DCAM_TRIGMODE_EXT_EDGE = 0
-DCAM_TRIGMODE_EXT_EDGE2 = 0
-DCAM_TRIGMODE_EXT_LEVEL2 = 0
-
-
-###############################################################################
-# [Trigger polarity]
-DCAM_TRIGPOL_POSITIVE = 0     # Positive polarity
-DCAM_TRIGPOL_NEGATIVE = 1     # Negative polarity
-
-###############################################################################
-# [CCD type] (In DCamLibM2 the constants defining the reslution of the camera are refered to as 'Model number' and called DCAM_MODEL_NUMBER0*. The actual values of the new constants are not available in the manual of DCamLib, so they are assumed from the old values)
-DCAM_CCD_TYPE0 = 0     # 1508 x 1002   ( 1500 x 1000 ) S8981 S10810
-DCAM_CCD_TYPE1 = 1     # 1708 x 1202   ( 1700 x 1200 ) S8985 S10811
-DCAM_CCD_TYPE2 = 2     #  608 x  402   (  600 x  400 ) S7368-01
-# DCAM_MODEL_NUMBER04 = 3     # 1758 x 1202   ( 1706 x 1200 ) (N/A in DCamLib)
-
-###############################################################################
-# [Camera Information] (Previously referred as 'Unit information type' in DCamLibM2. Constants called DCAM_UNITINF_*.)
-DCAM_CAMINF_TYPE           = 0     # Unit type
-DCAM_CAMINF_SERIALNO       = 1     # Serial number of unit
-DCAM_CAMINF_VERSION        = 2     # Unit version
-# DCAM_UNTINF_SENSOR_LNO_SNO = 3     # Lot No. and Serial No. of Snesor (N/A)
-
-##############################################################################
-# [USB transfer rate type]
-DCAM_TRANSRATE_USB11 = 0     # USB 1.1 standard
-DCAM_TRANSRATE_USB20 = 1     # USB 2.0 standard
-
-##############################################################################
-##############################################################################
-##############################################################################
-# Execution Status ( DCam Status Code )
-dcCode_Success          =   0      # Ended successfully
-dcCode_Unknown          =   1      # An unknown error has occurred
-dcCode_NoInit           =   2      # Library is not initialized
-dcCode_AlreadyInit      =   3      # Already used by other
-dcCode_NoDriver         =   4      # No driver was found
-dcCode_NoMemory         =   5      # Memory is insufficient
-dcCode_NotConnected     =   6      # Not connected
-
-dcCode_InvalidParam     =   9      # Invalid Argument
-
-dcCode_UnitAnomaly      = 100      # Unit anomaly
-
-dcCode_Overrun          = 110      # Overrun error
-dcCode_Timeout          = 111      # Timeout error
-
-dcCode_AlreadyStart     = 120      # Already start
-
-dcCode_TransRate_USB11  = 121      # USB version 1.1 
-dcCode_InvalidCamC10819 = 122      #Camera is not of type C10819
 
 #============================================================================
 # DcamInitialize()
@@ -793,3 +707,40 @@ dcam.DcamGetDeviceState.restype = c_bool
 #============================================================================
 dcam.DcamGetLastError.argtypes = []
 dcam.DcamGetLastError.restype = c_uint32
+
+
+#====================Function aliases (C-style)==============================
+# These aliases allow to call the functions like in the C API, without making
+# reference to the dcam ctype object required to load the library.
+DcamGetImageSize = dcam.DcamGetImageSize
+DcamGetBitPerPixel = dcam.DcamGetBitPerPixel
+DcamGetFrameBytes = dcam.DcamGetFrameBytes
+DcamCapture = dcam.DcamCapture
+DcamCaptureReverseX = dcam.DcamCaptureReverseX
+DcamStop = dcam.DcamStop
+DcamWait = dcam.DcamWait
+DcamSetGain = dcam.DcamSetGain
+DcamGetGain = dcam.DcamGetGain
+DcamSetOffset = dcam.DcamSetOffset
+DcamGetOffset = dcam.DcamGetOffset
+DcamSetDriveMode = dcam.DcamSetDriveMode
+DcamGetDriveMode = dcam.DcamGetDriveMode
+DcamSetBinning = dcam.DcamSetBinning
+DcamGetBinning = dcam.DcamGetBinning
+DcamSetTriggerMode = dcam.DcamSetTriggerMode
+DcamGetTriggerMode = dcam.DcamGetTriggerMode
+DcamSetTriggerPolarity = dcam.DcamSetTriggerPolarity
+DcamGetTriggerPolarity = dcam.DcamGetTriggerPolarity
+DcamSetExposureTime = dcam.DcamSetExposureTime
+DcamGetExposureTime = dcam.DcamGetExposureTime
+DcamSetCCDType = dcam.DcamSetCCDType
+DcamGetCCDType = dcam.DcamGetCCDType
+DcamLoadParameters = dcam.DcamLoadParameters
+DcamStoreParameters = dcam.DcamStoreParameters
+DcamGetVersion = dcam.DcamGetVersion
+DcamGetDriverVersion = dcam.DcamGetDriverVersion
+DcamGetFirmwareVersion = dcam.DcamGetFirmwareVersion
+DcamGetCameraInformation = dcam.DcamGetCameraInformation
+DcamGetTransferRateType = dcam.DcamGetTransferRateType
+DcamGetDeviceState = dcam.DcamGetDeviceState
+DcamGetLastError = dcam.DcamGetLastError
