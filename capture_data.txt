@@ -1,0 +1,5 @@
+Sample X-ray images capture data
+sample_nr 	 Capture_time(s)	 Total_time(s)
+  1	 0.0292	 0.9896
+  2	 0.0297	 0.9901
+  3	 0.0304	 0.9906
