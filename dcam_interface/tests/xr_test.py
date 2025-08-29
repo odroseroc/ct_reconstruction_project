@@ -12,7 +12,7 @@ from dcam_interface.dcamimg import *
 from dcam_interface.constants import *
 from xrsource.xrs_resources import ser, xrs_command
 
-def capture_img(img_nr=1, exposure=1000, padding=0.96):
+def capture_img(img_nr=1, exposure=1000, padding=0.96, gain=1, offset=10):
     dcam.DcamInitialize()
     dcam.DcamOpen()
     dcam.DcamSetDriveMode(DCAM_CCDDRVMODE_OPERATION, 3000)
@@ -24,8 +24,8 @@ def capture_img(img_nr=1, exposure=1000, padding=0.96):
     dwRetStatus = ct.c_uint32(DCAM_WAITSTATUS_UNCOMPLETED)
     # pDataBuff = ct.POINTER()
     dcam.DcamSetDriveMode(DCAM_CCDDRVMODE_STANDBY, 3000)
-    dcam.DcamSetGain(10)
-    dcam.DcamSetOffset(10)
+    dcam.DcamSetGain(gain)
+    dcam.DcamSetOffset(offset)
     dcam.DcamSetBinning(DCAM_BINNING_1X1)
     dcam.DcamSetCCDType(DCAM_CCD_TYPE0)
     dcam.DcamSetTriggerMode(DCAM_TRIGMODE_INT)
@@ -68,7 +68,7 @@ def capture_img(img_nr=1, exposure=1000, padding=0.96):
 
     im_array = np.ctypeslib.as_array(pDataBuff) 
     im_array = np.reshape(im_array,(nHeight.value,nWidth.value))
-    print(im_array)
+    # print(im_array)
 
     filename_str=fr'.\dcam_interface\tests\test_xr\sample_{img_nr:03d}.tiff'
     pFileName = ct.c_char_p(filename_str.encode('utf-8'))
@@ -78,7 +78,7 @@ def capture_img(img_nr=1, exposure=1000, padding=0.96):
     plt.imshow(im_array, cmap='grey')
     plt.show()
 
-    pDataBuff = None
+    del(pDataBuff)
 
     dcamcapture_exc_time = capture_sent_time - start_time
     total_exc_time = end_time - start_time
@@ -164,15 +164,19 @@ def capture_img_afterglow(img_nr=1, exposure=1000, padding=0.96):
 
     return dcamcapture_exc_time, total_exc_time
 
+# ================= Main program =================
 if __name__ == "__main__":
 
     sample_nr = 2 # number of samples to capture
     exposure = 15000 # exposure time in ms
-    padding_diff = 0.1 # difference between exposure time and padding time
+    padding_diff = 0.04 # difference between exposure time and padding time
     padding = exposure/1000 - padding_diff # padding time in seconds
-
+    gain = 10
+    offset = 10
+    note = "Test with mamography scintillator (the pink one) in the detector" # Additional information to add to the text file
 
     xrs_command("AST 15") # Set the X-ray auto-off time
+    xrs_command("MOD 3") # set the X-ray source to manual mode
     xrs_command("CFS 2") # set the X-ray source to large focal spot mode
     xrs_command("HIV 80") # Set the high voltage to 70 kV
     xrs_command("CUR 300") # Set the current to 300 uA
@@ -181,14 +185,16 @@ if __name__ == "__main__":
 
     with open(".\\dcam_interface\\tests\\test_xr\\capture_data.txt", "w") as f:
         f.write("Sample X-ray images capture data\n\n")
-        f.write(f"Exposure time: {exposure} ms,  Padding time difference: {padding_diff}\n\n")
+        f.write(f"Exposure time: {exposure} ms,  Padding time: {padding} s\n\n")
         f.write("Note: The padding time is the time the X-ray source stays on after executing dcam.DcamCapture().\n padding_time = exposure time(s) - padding_time(s). \n")
         f.write("Capture time is the time taken by dcam.DcamCapture() to execute.\n")
-        f.write("Total time is the total time taken from sending the capture command to the end of the capture.\n\n")
+        f.write("Total time is the total time taken from sending the capture command to the end of the capture.\n")
+        f.write(f"****{note}\n\n")
+        f.write(f"Gain setting: {gain}, Offset setting: {offset}\n\n")
         f.write("sample_nr    Capture_time(s)    Total_time(s)\n")
 
     for i in range(1, sample_nr+1):
-        capture_time, total_time = capture_img(i, exposure=exposure, padding=padding)
+        capture_time, total_time = capture_img(i, exposure=exposure, padding=padding, gain=gain, offset=offset)
         # capture_time, total_time = capture_img_afterglow(i, exposure=exposure, padding=padding)
 
         with open(".\\dcam_interface\\tests\\test_xr\\capture_data.txt", "a") as f:
