@@ -180,7 +180,7 @@ if __name__ == "__main__":
     xrs_command("AST 60") # Set the X-ray auto-off time
     xrs_command("MOD 3") # set the X-ray source to manual mode
     xrs_command("CFS 2") # set the X-ray source to large focal spot mode
-    xrs_command("HIV 100") # Set the high voltage to 70 kV
+    xrs_command("HIV 80") # Set the high voltage to 70 kV
     xrs_command("CUR 300") # Set the current to 300 uA
     presets = xrs_command("SVI") # Check the X-ray source settings
     print("X-ray source presets: ", presets)

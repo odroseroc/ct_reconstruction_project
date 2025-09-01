@@ -1,12 +1,63 @@
 Sample X-ray images capture data
 
-Exposure time: 15000 ms,  Padding time difference: 0.1
+Exposure time: 15000 ms,  Padding time: 14.95 s
 
 Note: The padding time is the time the X-ray source stays on after executing dcam.DcamCapture().
  padding_time = exposure time(s) - padding_time(s). 
 Capture time is the time taken by dcam.DcamCapture() to execute.
 Total time is the total time taken from sending the capture command to the end of the capture.
+****Test with mamography scintillator (the pink one) in the detector
+
+Gain setting: 10, Offset setting: 10
 
 sample_nr    Capture_time(s)    Total_time(s)
-  1		 0.0298		 15.0302
-  2		 0.0305		 15.0310
+  1		 0.0308		 15.0816
+  2		 0.0308		 15.0817
+  3		 0.0295		 15.0804
+  4		 0.0283		 15.0792
+  5		 0.0295		 15.0799
+  6		 0.0289		 15.0796
+  7		 0.0306		 15.0810
+  8		 0.0292		 15.0798
+  9		 0.0301		 15.0812
+ 10		 0.0308		 15.0817
+ 11		 0.0298		 15.0804
+ 12		 0.0297		 15.0802
+ 13		 0.0296		 15.0801
+ 14		 0.0294		 15.0800
+ 15		 0.0282		 15.0788
+ 16		 0.0303		 15.0807
+ 17		 0.0283		 15.0791
+ 18		 0.0300		 15.0805
+ 19		 0.0296		 15.0804
+ 20		 0.0306		 15.0812
+ 21		 0.0310		 15.0816
+ 22		 0.0304		 15.0811
+ 23		 0.0302		 15.0811
+ 24		 0.0291		 15.0800
+ 25		 0.0305		 15.0814
+ 26		 0.0299		 15.0810
+ 27		 0.0294		 15.0801
+ 28		 0.0288		 15.0795
+ 29		 0.0296		 15.0802
+ 30		 0.0288		 15.0794
+ 31		 0.0296		 15.0805
+ 32		 0.0306		 15.0813
+ 33		 0.0308		 15.0818
+ 34		 0.0308		 15.0819
+ 35		 0.0286		 15.0795
+ 36		 0.0287		 15.0793
+ 37		 0.0293		 15.0799
+ 38		 0.0313		 15.0818
+ 39		 0.0303		 15.0812
+ 40		 0.0302		 15.0810
+ 41		 0.0301		 15.0811
+ 42		 0.0289		 15.0798
+ 43		 0.0299		 15.0809
+ 44		 0.0295		 15.0805
+ 45		 0.0307		 15.0814
+ 46		 0.0301		 15.0806
+ 47		 0.0299		 15.0805
+ 48		 0.0307		 15.0819
+ 49		 0.0288		 15.0799
+ 50		 0.0289		 15.0793
