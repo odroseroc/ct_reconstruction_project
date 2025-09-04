@@ -4,6 +4,7 @@ Various utilities used in several modules.
 import numpy as np
 from typing import Callable
 from imaging.img_utils import import_images
+from functools import wraps
 
 def resolve_input_images(func: Callable) -> Callable:
     """
@@ -13,6 +14,7 @@ def resolve_input_images(func: Callable) -> Callable:
 
 	The decorated funtion must have input_imgs as its first argument
     """
+	@wraps(func)
     def wrapper(input_imgs, *args, **kwargs):
 	    match input_imgs:
 	        case str() | [str(), *_]:

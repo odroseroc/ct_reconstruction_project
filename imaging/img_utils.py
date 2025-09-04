@@ -5,6 +5,7 @@ import glob
 from typing import Union, List, Tuple
 from collections.abc  import Callable
 from core.log_utils import no_op
+from functools import wraps
 
 def import_images(paths: List[str] | str, 
                   log_fn: Callable[[str], None] = no_op) -> list[np.ndarray]:
@@ -32,6 +33,26 @@ def import_images(paths: List[str] | str,
     imgs = [io.imread(path) for path in paths]
     log_fn('Imported %d image(s)'%len(paths))
     return imgs
+
+def resolve_input_images(func: Callable) -> Callable:
+    """
+	Decorator that transforms an argument input_imgs into a list of np.ndarray.
+	Allows input_img to be a list of arrays, a glob expression or a list of
+	path-like strings.
+
+	The decorated funtion must have input_imgs as its first argument
+    """
+	@wraps(func)
+    def wrapper(input_imgs, *args, **kwargs):
+	    match input_imgs:
+	        case str() | [str(), *_]:
+	            imgs = import_images(input_imgs)
+	        case [np.ndarray(imgs)]:
+	            imgs = input_imgs
+	        case _:
+	            raise TypeError('Input images must be provided as a list of arrays or path-like strings.')
+	    return func(imgs, *args, **kwargs)
+	return wrapper
 
 def median_by_pixel(imgs: list[np.ndarray]) -> np.ndarray:
     """
