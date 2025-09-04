@@ -1,7 +1,6 @@
 import numpy as np
 from pathlib import Path
-
-from imaging.img_utils import resolve_input_images
+import matplotlib.pyplot as plt
 
 class Sinogram:
     """
