@@ -42,7 +42,7 @@ def resolve_input_images(func: Callable) -> Callable:
 
 	The decorated funtion must have input_imgs as its first argument
     """
-	@wraps(func)
+    @wraps(func)
     def wrapper(input_imgs, *args, **kwargs):
 	    match input_imgs:
 	        case str() | [str(), *_]:

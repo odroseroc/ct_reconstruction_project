@@ -26,7 +26,7 @@ class Sinogram:
             raise ValueError("The number of angles does not coincide wih the number of columns in the sinogram data.")
         self.data = data
         self.angles = angles
-        self.projections = tuple(Projection(values, angle) for values, angle in zip(data.T, angles))
+        # self.projections = tuple(Projection(values, angle) for values, angle in zip(data.T, angles))
 
     def save(self, filepath: str):
         """
@@ -43,6 +43,15 @@ class Sinogram:
         filepath = Path(filepath)
         loaded = np.load(filename)
         return cls(data=loaded["data"], angles=loaded["angles"])
+
+    @classmethod
+    def from_projections(cls, projections: list):
+        """
+        Create a sinogram from a list of Projection namedtuples
+        """
+        angles = np.array([p.angle for p in projections])
+        data = np.array([p.values for p in projections]).T
+        return cls(data=data, angles=angles)
 
     def plot(self, title:str=None, xlabel:str='Projection angle (deg)', ylabel:str='Detector position (px)'):
         """
@@ -63,7 +72,7 @@ class Sinogram:
 
     def __getitem__(self, position):
         """This special method returns a tuple containing the projection at cerain position and the angle at which it was taken"""
-        return self.projections[position]
+        return Projection(values = self.data[:, position], angle = self.angles[position])
 
 if __name__ == "__main__":
     pass
