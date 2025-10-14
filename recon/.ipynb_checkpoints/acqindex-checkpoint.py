@@ -7,7 +7,7 @@ import collections
 # from imaging.img_utils import resolve_input_images
 from recon import Sinogram, Projection
 
-AcquisitionStep = collections.namedtuple('AcqisitionStep',['angle','filepath'])
+AcqisitionStep = collections.namedtuple('AcqisitionStep',['filepath','angle'])
 
 class AcquisitionIndex():
     """
@@ -20,28 +20,18 @@ class AcquisitionIndex():
     angles : np.ndarray
         1D array with the angles corresponding to each acquisition step.
     device : str, optional
-        Name of the device used for acquisition. Default is 'DahengCam'.
-        The second available option is 'HamamatsuCCD'
+        Name of the device used for acquisition. Default is 'cam'.
     steps : tuple
         Tuple of AcquisitionStep namedtuples, linking each filepath with its corresponding angle.
     """
-    def __init__(self,
-                 filepaths,
-                 angles,
-                 device='DahengCam',
-                 parent_dir=None,
-                 metadata_file=None):
-        self._filepaths = filepaths
-        self._angles = angles
+    def __init__(self, filepaths, angles, device='cam'):
+        self.filepaths = filepaths
+        self.angles = angles
         self.device = device
-        self.parent_dir = parent_dir
-        self.metadata_file = metadata_file
+        self.steps = tuple(AcqisitionStep(fp, angle) for fp, angle in zip(filepaths, angles))
 
     @classmethod
-    def from_file(cls,
-                  metadata_file: str,
-                  device: str = 'DahengCam',
-                  separator: str = ","):
+    def from_file(cls, metadata_file: str, device: str='cam', separator: str ="|"):
         """
         Load an acquisition index from a metadata.txt file
         """
@@ -63,31 +53,12 @@ class AcquisitionIndex():
                         filepaths.append(parent_dir/Path(p))
                     except ValueError:
                         pass
-        return cls(filepaths=filepaths, angles=np.array(angles), device=device, parent_dir=parent_dir, metadata_file=metadata_file)
+        return cls(filepaths=filepaths, angles=np.array(angles), device=device)
 
     def __getitem__(self, index: int):
-        if isinstance(index, slice):
-            return AcquisitionIndex(
-                filepaths=self._filepaths[index],
-                angles=self._angles[index],
-                device=self.device,
-                parent_dir=self.parent_dir,
-                metadata_file=self.metadata_file
-            )
-        elif isinstance(index, int):
-            return AcquisitionStep(self._angles[index], self._filepaths[index])
-        else:
-            raise TypeError(f"Invalid index type: {type(index)}")
+        return self.steps[index]
 
-    def __len__(self):
-        return len(self._filepaths)
-
-    def create_sinogram(self,
-                        row: int,
-                        crop=None,
-                        max_projections: int = None,
-                        log_fn=print,
-                        log_freq=None) -> Sinogram:
+    def create_sinogram(self, row: int, crop=None, max_projections=None, log_fn=print, log_freq=60) -> Sinogram:
         """
         Create a sinogram from the indexed acquisition images by extracting a specific row from each image.
 
@@ -109,11 +80,9 @@ class AcquisitionIndex():
         Sinogram
             Sinogram object containing the extracted projections and corresponding angles.
         """
-        if log_freq is None:
-            log_freq = np.floor(len(self._filepaths)/6)
         projections = []
-        log_fn(f"Creating sinogram from row {row} of {len(self._filepaths)} images...")
-        for step in self[:max_projections]:
+        log_fn(f"Creating sinogram from row {row} of {len(self.steps)} images...")
+        for step in self.steps[:max_projections]:
             img = tfff.imread(step.filepath)
             if row < 0 or row >= img.shape[0]:
                 raise ValueError(f"Row index {row} is out of bounds for image with shape {img.shape}.")

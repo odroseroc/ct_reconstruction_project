@@ -82,5 +82,4 @@ def backprojection(sinogram: "array_like", angles: "array_like") -> np.array:
         backprojection_sum += bp
     return backprojection_sum
 
-def sinogram_from_images(imgs: list[np.ndarray], line: int, axis: 0) -> np.ndarray:
-    pass
+
