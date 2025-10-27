@@ -13,6 +13,9 @@ arbitrary commands directly to the X-ray source as strings.
 
 All functions in this module are intended to be used by higher-level scripts or GUIs
 that require a clean and Pythonic API to the X-ray source system.
+
+Author: Oscar Rosero
+Date: August 2025
 '''
 
 import serial
@@ -238,7 +241,7 @@ class XRaySource:
     def __del__(self):
         self.close()
 
-def main():
+def xrs_basic_test():
     '''Basic usage of the XRaySource class.'''
     xrs = None
     try:
@@ -271,4 +274,4 @@ def main():
                 print(f"[WARNING] Failed to close X-ray source cleanly: {e}")
 
 if __name__ == "__main__":
-    main()
+    xrs_basic_test()
