@@ -105,7 +105,7 @@ class SMC100Controller:
             return outputs[0]
         return outputs[:-1]
 
-    def get_positioner_status(self): -> str
+    def get_positioner_status(self) -> str:
         errorCode, status_code = self.execute('TS')
         if errorCode != 0:
             raise RuntimeError(f"Positioner error code {status_code}")
