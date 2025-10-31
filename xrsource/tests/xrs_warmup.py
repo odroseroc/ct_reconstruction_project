@@ -2,10 +2,10 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from xrsource.xrs_controller import XRaySource
+from xrsource.xrs_controller import XRSController
 import time
 
-xrs = XRaySource(port='COM4')
+xrs = XRSController(port='COM4')
 xrs.show_status()
 xrs.show_preheat_status()
 print(xrs.send_command("SWE"))

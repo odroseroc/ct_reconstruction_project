@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 from core.log_utils import no_op
 
-class SMC100Controler:
+class SMC100Controller:
     # Dictionaries to interpret status and error codes
     ERROR_DICT = {
         "A": "A: Unknown message code or floating point controller address.",

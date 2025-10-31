@@ -2,10 +2,10 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from xrsource.xrs_controller import XRaySource
+from xrsource.xrs_controller import XRSController
 import time
 
-with XRaySource(port='COM4', timeout=1) as xrs:
+with XRSController(port='COM4', timeout=1) as xrs:
     xrs.show_status()
     print(xrs.get_presets())
     xrs.xon()

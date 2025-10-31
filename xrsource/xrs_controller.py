@@ -21,7 +21,7 @@ Date: August 2025
 import serial
 import time
 
-class XRaySource:
+class XRSController:
     # Dictionaries to interpret status and error codes
     STATUS_DICT = {
             "STS 0": "0: Awaiting warm-up.",
@@ -245,7 +245,7 @@ def xrs_basic_test():
     '''Basic usage of the XRaySource class.'''
     xrs = None
     try:
-        xrs = XRaySource(port='COM4')
+        xrs = XRSController(port='COM4')
         xrs.show_status()
         xrs.show_preheat_status()
         xrs.set_auto_off_time(15)
