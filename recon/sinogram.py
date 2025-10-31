@@ -24,8 +24,8 @@ class Sinogram:
             raise ValueError("`data` must be 2D (n_angles x n_detectors or n_detectors x n_angles).")
         if not(len(angles) == data.shape[1]):
             raise ValueError("The number of angles does not coincide wih the number of columns in the sinogram data.")
-        self.data = data
-        self.angles = angles
+        self._data = data
+        self._angles = angles
         # self.projections = tuple(Projection(values, angle) for values, angle in zip(data.T, angles))
 
     def save(self, filepath: str):
@@ -33,7 +33,7 @@ class Sinogram:
         Save a sinogram as a .npz file for later use
         """
         filepath = Path(filepath)
-        np.savez(filepath, data=self.data, angles=self.angles)
+        np.savez(filepath, data=self._data, angles=self._angles)
 
     @classmethod
     def load(cls, filepath: str):
@@ -57,10 +57,10 @@ class Sinogram:
         """
         Plot the sinogram with the correct scaling
         """
-        dx, dy = 0.5*max(self.angles)/max(self.data.shape), 0.5
+        dx, dy = 0.5 * max(self._angles) / max(self._data.shape), 0.5
 
         # plt.figure(figsize=figsize)
-        plt.imshow(self.data, cmap=plt.cm.Greys_r, extent=(min(self.angles)-dx, max(self.angles)+dx, -dy, self.data.shape[0]+dy), aspect='auto')
+        plt.imshow(self._data, cmap=plt.cm.Greys_r, extent=(min(self._angles) - dx, max(self._angles) + dx, -dy, self._data.shape[0] + dy), aspect='auto')
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -68,11 +68,25 @@ class Sinogram:
     
     def __len__(self):
         """Special method that returns the number of projections in the sinogram"""
-        return len(self.angles)
+        return len(self._angles)
 
-    def __getitem__(self, position):
+    def __getitem__(self, index: int):
         """This special method returns a tuple containing the projection at cerain position and the angle at which it was taken"""
-        return Projection(values = self.data[:, position], angle = self.angles[position])
+        if isinstance(index, slice):
+            return Sinogram(
+                data=self._data[index],
+                angles=self._angles[index],
+            )
+        elif isinstance(index, int):
+            return Projection(values = self._data[:, index], angle = self._angles[index])
+        else:
+            raise ValueError("Index must be either a slice or an integer")
+
+    def get_data(self)
+        return self._data
+
+    def get_angles(self)
+        return self._angles
 
 if __name__ == "__main__":
     pass
