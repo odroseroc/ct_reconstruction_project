@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 from core.log_utils import no_op
 
-class SMC100Controller:
+class MotorController:
     # Dictionaries to interpret status and error codes
     ERROR_DICT = {
         "A": "A: Unknown message code or floating point controller address.",
@@ -150,16 +150,19 @@ class SMC100Controller:
         return self.execute('PA_Get')
 
     def home(self, log_fn=no_op) -> None:
+        ''' Perform homing sequence.'''
         self.execute('OR')
         log_fn(f"Homing...")
 
     def wait(self, poll_interval=0.2, log_fn=no_op) -> None:
+        ''' Wait until the motor stops moving.'''
         log_fn("Waiting for motion to complete...")
         while self.is_moving():
             time.sleep(poll_interval)
         log_fn("Motion complete.")
 
     def close(self, log_fn = no_op):
+        ''' Close the motor connection, returning to home position first.'''
         if not self.closed:
             log_fn("Returning to home position before closing...")
             self.move_absolute(0)
@@ -177,9 +180,12 @@ class SMC100Controller:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        ''' 
+        Ensure the motor connection is closed when exiting context. 
+        Please note that this does not return to home position first. Whenever
+        possible, use the close() method instead.
+        '''
         if not self.closed:
-            self.move_absolute(0)
-            self.wait()
             response = self._smc.CloseInstrument()
             if response != 0:
                 raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
@@ -188,12 +194,34 @@ class SMC100Controller:
             pass
 
     def __del__(self):
+        ''' 
+        Ensure the motor connection is closed when the object is deleted.
+        Please note that this does not return to home position first. Whenever
+        possible, use the close() method instead.
+        '''
         if not self.closed:
-            self.move_absolute(0)
-            self.wait()
             response = self._smc.CloseInstrument()
             if response != 0:
                 raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
             self.closed = True
         else:
             pass
+
+def motor_basic_test():
+    DLLPATH = r'C:\Windows\Microsoft.NET\assembly\GAC_64\Newport.SMC100.CommandInterface\v4.0_2.0.0.3__d9d722840772240b\Newport.SMC100.CommandInterface.dll'
+    with MotorController(dll_path=DLLPATH,
+                          port='COM6',
+                          log_fn=print) as motor:
+        motor.move_absolute(90, log_fn=print)
+        motor.wait(log_fn=print)
+        print(f"Reached position {motor.get_theoretical_position()}")
+        time.sleep(2)
+        motor.move_absolute(10, log_fn=print)
+        motor.wait(log_fn=print)
+        print(f"Homed position: {motor.get_theoretical_position()}")
+        time.sleep(2)
+        motor.close(log_fn=print)
+    print("Done.")
+
+if __name__ == "__main__":
+    motor_basic_test()

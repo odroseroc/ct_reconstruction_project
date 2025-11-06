@@ -1,3 +1,3 @@
-from .motor_controller import SMC100Controller
+from .motor_controller import MotorController
 
-__all__ = ['SMC100Controller']
+__all__ = ['MotorController']
