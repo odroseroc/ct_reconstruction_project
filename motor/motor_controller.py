@@ -50,24 +50,36 @@ class SMC100Controller:
                  axis = 1,
                  log_fn=no_op
                  ):
+        self.closed = False
         self.axis = axis
         self.port = port
 
         # Add reference to assembly
-        dll_path = Path(dll_path)
-        if not dll_path.exists():
+        dll_p = Path(dll_path)
+        if not dll_p.exists():
             raise FileNotFoundError(dll_path)
-        clr.AddReferenceToFile(dll_path)
-        from CommandInterfaceSMC100 import SMC100
+        clr.AddReference(dll_path)
 
-        # Create a device instance
+        # Import the .NET class and create an instance
+        from CommandInterfaceSMC100 import SMC100
         self._smc = SMC100()
+
+        # Open the instrument in the specified port
         result = self._smc.OpenInstrument(self.port)
         if result != 0:
             raise RuntimeError(f"Failed to open Instrument on {self.port}, error code {result}")
         log_fn(f"Opened Instrument on {self.port}")
-        self.go_home(log_fn=log_fn)
-        while self.is_moving(): time.sleep(1)
+
+        # If the motor is NOT REFERENCED, perform homing
+        status = self.get_positioner_status()
+        if status.startswith('0'):
+            log_fn(f"Motor in NOT REFERENCED state ({status}), performing homing...")
+            self.home(log_fn=log_fn)
+            self.wait(log_fn=log_fn)
+        if self.get_theoretical_position() != 0:
+            log_fn(f"Motor is REFERENCED but not at position 0 ({self.get_theoretical_position()}), moving to 0...")
+            self.move_absolute(0, log_fn=log_fn)
+            self.wait(log_fn=log_fn)
         log_fn(f"Rotating stage ready to be used.")
 
     def execute(self, command, *params, log_fn=no_op, debug=False):
@@ -106,9 +118,7 @@ class SMC100Controller:
         return outputs[:-1]
 
     def get_positioner_status(self) -> str:
-        errorCode, status_code = self.execute('TS')
-        if errorCode != 0:
-            raise RuntimeError(f"Positioner error code {status_code}")
+        err_code, status_code = self.execute('TS')
         return status_code
 
     def show_positioner_status(self, statusCode, log_fn=print) -> None:
@@ -125,7 +135,7 @@ class SMC100Controller:
     def get_current_position(self):
         return self.execute('TP')
 
-    def get_teoretical_position(self):
+    def get_theoretical_position(self):
         return self.execute('TH')
 
     def move_absolute(self, target_pos, log_fn=no_op) -> None:
@@ -137,30 +147,53 @@ class SMC100Controller:
         log_fn(f"Moving a distance: {dist}")
 
     def get_target_position(self) -> float:
-        return self.execute('PA_get')
+        return self.execute('PA_Get')
 
-    def go_home(self, log_fn=no_op) -> None:
+    def home(self, log_fn=no_op) -> None:
         self.execute('OR')
         log_fn(f"Homing...")
 
     def wait(self, poll_interval=0.2, log_fn=no_op) -> None:
-        print("Waiting for motion to complete...")
+        log_fn("Waiting for motion to complete...")
         while self.is_moving():
             time.sleep(poll_interval)
         log_fn("Motion complete.")
 
     def close(self, log_fn = no_op):
-        response = self._smc.CloseInstrument()
-        log_fn("Motor closed correctly.")
-        if response != 0:
-            raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
-        self._smc.UnregisterInstrument()
+        if not self.closed:
+            log_fn("Returning to home position before closing...")
+            self.move_absolute(0)
+            self.wait()
+            log_fn("Closing motor...")
+            response = self._smc.CloseInstrument()
+            if response != 0:
+                raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
+            self.closed = True
+            log_fn("Motor closed correctly.")
+        else:
+            log_fn("Motor already closed.")
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        if not self.closed:
+            self.move_absolute(0)
+            self.wait()
+            response = self._smc.CloseInstrument()
+            if response != 0:
+                raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
+            self.closed = True
+        else:
+            pass
 
     def __del__(self):
-        self.close()
+        if not self.closed:
+            self.move_absolute(0)
+            self.wait()
+            response = self._smc.CloseInstrument()
+            if response != 0:
+                raise RuntimeError(f"Failed to close Instrument on {self.port}, error code {response}")
+            self.closed = True
+        else:
+            pass
