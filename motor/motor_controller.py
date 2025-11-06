@@ -143,6 +143,12 @@ class SMC100Controller:
         self.execute('OR')
         log_fn(f"Homing...")
 
+    def wait(self, poll_interval=0.2, log_fn=no_op) -> None:
+        print("Waiting for motion to complete...")
+        while self.is_moving():
+            time.sleep(poll_interval)
+        log_fn("Motion complete.")
+
     def close(self, log_fn = no_op):
         response = self._smc.CloseInstrument()
         log_fn("Motor closed correctly.")
