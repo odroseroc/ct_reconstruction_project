@@ -97,7 +97,7 @@ class XRSController:
         return self.send_command(f"AST {seconds}")
     
     def reset_overload_protection(self) -> str:
-        """When the overload protection is activated, the X-ray source stops emitting X-rays and the status terutns "STS 4". This method resets the overload protection."""
+        """When the overload protection is activated, the X-ray source stops emitting X-rays and the status returns "STS 4". This method resets the overload protection."""
         return self.send_command("RST")
     
     def set_emission_mode(self, mode) -> str:

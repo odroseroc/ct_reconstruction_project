@@ -67,8 +67,8 @@ class MotorController:
         # Open the instrument in the specified port
         result = self._smc.OpenInstrument(self.port)
         if result != 0:
-            raise RuntimeError(f"Failed to open Instrument on {self.port}, error code {result}")
-        log_fn(f"Opened Instrument on {self.port}")
+            raise RuntimeError(f"Failed to open rotating stage on {self.port}, error code {result}")
+        log_fn(f"Opened rotating stage on {self.port}")
 
         # If the motor is NOT REFERENCED, perform homing
         status = self.get_positioner_status()
