@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 
 from xrsource import XRSController
 
-# ====== Mock GUI para control de RX, Motor y Cámara ====== #
+# ====== GUI for X-ray source, rotating stage and camera control ====== #
 
 class TomographyGUI(tk.Tk):
     def __init__(self):
@@ -40,7 +40,7 @@ class TomographyGUI(tk.Tk):
         left_frame.columnconfigure(0, weight=1)
 
         # --- Global X-ray indicator ---
-        self.rx_indicator = tk.Label(
+        self.xrs_emitting_indicator = tk.Label(
             left_frame,
             text="X-RAY OFF",
             bg="gray20",
@@ -50,7 +50,7 @@ class TomographyGUI(tk.Tk):
             width=20,
             height=2
         )
-        self.rx_indicator.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+        self.xrs_emitting_indicator.grid(row=0, column=0, sticky="ew", pady=(0, 5))
 
         # Notebook with tabs
         left_notebook = ttk.Notebook(left_frame)
@@ -93,16 +93,126 @@ class TomographyGUI(tk.Tk):
         self.build_camera_tab()
 
         # Iniciar parpadeo del indicador RX
-        self.after(500, self.toggle_rx_indicator)
+        # self.after(500, self.toggle_rx_indicator)
 
-        ########## Device components ##########
+        ########## Devices ##########
         self.xrs = None
         self.cam = None
         self.cam_devmgr = None
         self.motor = None
-
         self.streaming = False
 
+        # Try to initialize devices with default values
+        self.init_xrs()
+
+        ########## Status flags #########
+        # --- X-ray source ---
+        self.xrs_Flags = {'connected': False,
+                          'emmiting': False,
+                          'wating_warmup': False,
+                          'warmup_complete': False,
+                          'overload': False,
+                          'interlock': False,
+                          'error': False,}
+
+
+        self.after(200, self.update_status_loop)
+
+    # --End __init__
+
+    # ===============================================================
+    #    Status loop
+    # ===============================================================
+
+    def update_status_loop(self):
+        '''Update the states of indicators and buttons'''
+        self.update_xrs_status()
+        self.update_motor_status()
+        self.update_camera_status()
+        self.after(200, self.update_status_loop)
+
+    # ---- Update modules ----
+    def update_xrs_status(self):
+        if self.xrs is None:
+            self.btn_xon.config(state=tk.DISABLED)
+            self.btn_xon.config(state=tk.DISABLED)
+            self.xrs_emitting_indicator.config(text="X-Ray Off", bg="gray20")
+            for lbl, widget in self.xrs_indicators.items():
+                widget.config(bg="gray")
+            return
+
+
+
+
+    def update_motor_status(self):
+        pass
+
+    def update_camera_status(self):
+        pass
+
+    # ==============================================================
+    #    Loger
+    # ==============================================================
+    def log_msg(self, msg):
+        self.log.config(state='normal')
+        self.log.insert(tk.END, f"{time.strftime('%H:%M:%S')} - {msg}\n")
+        self.log.see(tk.END)
+        self.log.config(state='disabled')
+
+    # ==============================================================
+    #    Devices initializers
+    # ==============================================================
+    def init_xrs(self):
+        port = self.xrs_port_entry.get().strip()
+        try:
+            self.xrs = XRSController(port=port)
+        except Exception as e:
+            self.xrs = None
+            return e
+        finally:
+            if self.xrs:
+                self.log_msg(f"X-Ray source initialized in port {port}\n")
+                self.xrs.show_status(log_fn=self.log_msg)
+        return 0
+
+    # ==============================================================
+    #    Proxy functions
+    # ==============================================================
+
+    # ---- X-ray Source ----
+    def xon(self):
+        if not self.xrs:
+            return
+        status = self.xrs.get_status()
+        match status:
+            case "STS 0":
+                self.xrs.start_warmup()
+            case "STS 2":
+                self.xrs.xon()
+            case _:
+                pass
+
+    def xoff(self):
+        if not self.xrs:
+            return
+        self.xrs.xoff()
+
+    def connect_xrs(self):
+        e = self.init_xrs()
+        if e:
+            tk.messagebox.showerror(title="X-Ray init error",
+                                    message=f"Failed to initialize X-ray source in port {port}:\n {e}")
+
+
+
+    def on_close(self):
+        if self.xrs:
+            self.xrs.close()
+        if self.motor:
+            self.motor.close()
+        self.root.destroy()
+
+    ########## WINDOW ##########
     # ============================================================
     #   Tab 1: X-ray source
     # ============================================================
@@ -147,14 +257,14 @@ class TomographyGUI(tk.Tk):
             box.grid(row=row, column=col, padx=5, pady=3)
             self.xrs_indicators[lbl] = box
 
-        # --- Puerto serial ---
+        # --- Port ---
         xrs_port_frame = ttk.Frame(f)
         xrs_port_frame.grid(row=5, column=0, pady=10, sticky="ew")
         ttk.Label(xrs_port_frame, text="Serial Port:").grid(row=0, column=0)
         self.xrs_port_entry = ttk.Entry(xrs_port_frame, width=10)
         self.xrs_port_entry.insert(0, "COM4")
         self.xrs_port_entry.grid(row=0, column=1, padx=5)
-        ttk.Button(xrs_port_frame, text="Connect", command=self.init_xrs).grid(row=0, column=2, padx=5)
+        ttk.Button(xrs_port_frame, text="Connect", command=self.connect_xrs).grid(row=0, column=2, padx=5)
 
     # Helper function to create boxes Act/Set
     def _build_act_set_box(self, parent, title, unit, col):
@@ -298,70 +408,11 @@ class TomographyGUI(tk.Tk):
 
     def toggle_rx_indicator(self):
         color = "red" if self.rx_on else "gray"
-        current_color = self.rx_indicator.cget("bg")
-        self.rx_indicator.config(bg=color if current_color != color else color)
+        current_color = self.xrs_emitting_indicator.cget("bg")
+        self.xrs_emitting_indicator.config(bg=color if current_color != color else color)
         self.after(500, self.toggle_rx_indicator)
 
-    # ==============================================================
-    #    Loger
-    # ==============================================================
-    def log_msg(self, msg):
-        self.log.config(state='normal')
-        self.log.insert(tk.END, f"{time.strftime('%H:%M:%S')} - {msg}\n")
-        self.log.see(tk.END)
-        self.log.config(state='disabled')
 
-    # ==============================================================
-    #    Devices initializers
-    # ==============================================================
-    def init_xrs(self):
-        port = self.xrs_port_entry.get().strip()
-        try:
-            self.xrs = XRSController(port=port)
-        except Exception as e:
-            tk.messagebox.showerror(title="X-Ray init error", message=f"Failed to initialize X-ray source in port {port}:\n {e}")
-            self.xrs = None
-        finally:
-            if self.xrs:
-                self.xrs.show_status(log_fn=self.log_msg)
-
-
-
-    # ==============================================================
-    #    Proxy functions
-    # ==============================================================
-
-    # ---- X-ray Source ----
-    def xon(self):
-        if self.xrs is None:
-            pass
-        else:
-            status = self.xrs.get_status()
-            match status:
-                case "STS 0":
-                    self.xrs.start_warmup()
-                case "STS 2":
-                    self.xrs.xon()
-                case _:
-                    pass
-
-    def xoff(self):
-        if self.xrs is None:
-            pass
-        else:
-            self.xrs.xoff()
-
-
-    # ===============================================================
-    #    Status functions
-    # ===============================================================
-
-    # ---- X-ray Source ----
-    def xrs_status(self):
-        if self.xrs is None:
-            pass
-        else:
-            pass
 
 if __name__ == "__main__":
     app = TomographyGUI()
