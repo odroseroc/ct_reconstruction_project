@@ -175,13 +175,15 @@ class XRSController:
 
     # TODO: Implement SNR "NOT READY" batch check
 
-    def get_voltage(self) -> str:
-        """Returns the X-ray tube voltage (kV)."""
-        return self.send_command("SHV")
+    def get_voltage(self) -> int:
+        """Returns the X-ray tube voltage (kV) as integer."""
+        resp = self.send_command("SHV")  # resp = "SHV 45"
+        return int(resp.split()[1])
     
-    def get_current(self) -> str:
-        """Returns the X-ray tube current (uA)."""
-        return self.send_command("SCU")
+    def get_current(self) -> int:
+        """Returns the X-ray tube current (uA) as integer."""
+        resp = self.send_command("SCU")
+        return int(resp.split()[1])
     
     def get_preset_voltage(self) -> str:
         """Returns the preset value for the X-ray tube voltage (kV)."""

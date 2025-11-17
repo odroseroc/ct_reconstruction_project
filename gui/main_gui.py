@@ -144,8 +144,8 @@ class TomographyGUI(tk.Tk):
                           'ERROR': True,  # True if there is NO error
                                     }
         self.xrs_emitting_flag = False
-        self.xrs_values = {'volt_set': 0,
-                           'curr_set': 0,
+        self.xrs_values = {'volt': 0,
+                           'curr': 0,
                            'focus': 0 # 0:small, 1:medium, 2:large
                            }
 
@@ -305,7 +305,7 @@ class TomographyGUI(tk.Tk):
             for lbl, widget in self.xrs_indicators.items():
                 widget.config(bg="gray")
             return
-        # If X-ray source could be reached:
+        # If X-ray source is instantiated:
         # Update indicators panel
         self.xrs_indicators.update()
         if not self.xrs_indicator_flags["WARMUP"]:
@@ -321,6 +321,24 @@ class TomographyGUI(tk.Tk):
         else:
             self.xrs_emitting_indicator.config(text="X-Ray OFF", bg="gray20")
             self.xrs_indicators.stop_blink("X_RAY")
+        # Update voltage and current values and indicators
+        volt = int(self.volt_entry.get())
+        curr = int(self.curr_entry.get())
+        focus = self.combo_focus.current()
+        if self.xrs_values["volt"] != volt:
+            self.xrs.set_voltage(volt)
+            self.xrs_values["volt"] = volt
+        if self.xrs_values["curr"] != curr:
+            self.xrs.set_current(curr)
+            self.xrs_values["curr"] = curr
+        if self.xrs_values["focus"] != focus:
+            self.xrs.set_focal_spot_mode(focus)
+            self.xrs_values["focus"] = focus
+
+        act_volt = self.xrs.get_voltage()
+        act_curr = self.xrs.get_current()
+        self.volt_indicator.config(text=act_volt)
+        self.curr_indicator.config(text=act_curr)
 
 
     def update_motor_status(self):
@@ -430,8 +448,8 @@ class TomographyGUI(tk.Tk):
         frame_vc = ttk.Frame(f)
         frame_vc.grid(row=1, column=0, pady=10)
 
-        self.volt_indicator, self.volt_setter = self._build_act_set_box(frame_vc, "Tube Voltage", "kV", 0)
-        self.curr_indicator, self.curr_setter = self._build_act_set_box(frame_vc, "Tube Current", "µA", 1)
+        self.volt_indicator, self.volt_entry = self._build_act_set_box(frame_vc, "Tube Voltage", "kV", 0)
+        self.curr_indicator, self.curr_entry = self._build_act_set_box(frame_vc, "Tube Current", "µA", 1)
 
         # --- Botones ON/OFF ---
         frame_btns = ttk.Frame(f)
