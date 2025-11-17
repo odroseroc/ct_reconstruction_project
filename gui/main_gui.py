@@ -410,7 +410,7 @@ class TomographyGUI(tk.Tk):
         try:
             from motor.motor_controller import MotorController
             self.motor = MotorController(dll_path=dll ,port=port, log_fn=self.log_msg)
-        except Execption as e:
+        except Exception as e:
             self.motor = None
             return e
         finally:
