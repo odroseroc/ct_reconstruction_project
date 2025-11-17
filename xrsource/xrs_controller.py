@@ -186,12 +186,14 @@ class XRSController:
         return int(resp.split()[1])
     
     def get_preset_voltage(self) -> str:
-        """Returns the preset value for the X-ray tube voltage (kV)."""
-        return self.send_command("SPV")
+        """Returns the preset value for the X-ray tube voltage (kV) as integer."""
+        resp = self.send_command("SPV")  # resp = "SHV 45"
+        return int(resp.split()[1])        
     
     def get_preset_current(self) -> str:
-        """Returns the preset value for the X-ray tube current (uA)."""
-        return self.send_command("SPC")
+        """Returns the preset value for the X-ray tube current (uA) as integer."""
+        resp = self.send_command("SPC")  # resp = "SHV 45"
+        return int(resp.split()[1])
     
     def get_presets(self) -> str:
         """Returns the preset voltage and curret values."""
