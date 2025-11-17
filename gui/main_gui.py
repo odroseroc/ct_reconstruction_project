@@ -12,9 +12,61 @@ from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-from xrsource import XRSController
+# Imports handled by lazy import in development phase
+# from motor import MotorController
+# from xrsource import XRSController
 
 # ====== GUI for X-ray source, rotating stage and camera control ====== #
+DEFAULT_DLLPATH = r'C:\Windows\Microsoft.NET\assembly\GAC_64\Newport.SMC100.CommandInterface\v4.0_2.0.0.3__d9d722840772240b\Newport.SMC100.CommandInterface.dll'
+
+class StatusIndicators:
+    """
+    Administer logical flags of a device and its indicator labels.
+    """
+    def __init__(self, parent_frame, flags_dict, columns=3):
+        """
+        parent_frame : Frame where indicators are located
+        flags_dict   : dictionary {'FLAG_NAME': bool}
+        columns      : number of columns in the grid
+        """
+        self.parent = parent_frame
+        self.flags = flags_dict
+        self.columns = columns
+        self.widgets = {}   # {'FLAG_NAME': Label}
+
+        self._build()
+
+    # -----------------------------------------------------------
+    def _build(self):
+        """Build labels based on the glags dict's keys."""
+        for i, key in enumerate(self.flags.keys()):
+            row = i // self.columns
+            col = i % self.columns
+
+            lbl = tk.Label(
+                self.parent,
+                text=f" {key} ",
+                bg="gray20",
+                fg="white",
+                width=12
+            )
+            lbl.grid(row=row, column=col, padx=5, pady=4)
+            self.widgets[key] = lbl
+
+    # -----------------------------------------------------------
+    def update(self):
+        """Update colors according to each flag."""
+        for key, widget in self.widgets.items():
+            value = self.flags.get(key, False)
+
+            widget.config(bg="green" if value else "red")
+
+    # -----------------------------------------------------------
+    def reset(self):
+        """Turns OFF all visual indicators."""
+        for widget in self.widgets.values():
+            widget.config(bg="gray20")
+
 
 class TomographyGUI(tk.Tk):
     def __init__(self):
@@ -30,6 +82,16 @@ class TomographyGUI(tk.Tk):
         self.columnconfigure(0, minsize=350, weight=1)
         self.columnconfigure(1, weight=10)
         self.rowconfigure(0, weight=1)
+
+        ########## Status flags #########
+        # --- X-ray source ---
+        self.xrs_flags = {'X_RAY': False,
+                          'WARMUP': False,  # Only true if warmup is complete
+                          'PREHEAT': True,  # True if no preheat is ongoing
+                          'OVER': True,  # True if the source is NOT in STS 4: Overload protection
+                          'INTERLOCK': False,  # True if interlock is closed
+                          'ERROR': True,  # True if there is NO error
+                          }
 
         ########## Left panel: Control tabs + log console ##########
         left_frame = tk.Frame(self)
@@ -105,17 +167,6 @@ class TomographyGUI(tk.Tk):
         # Try to initialize devices with default values
         self.init_xrs()
 
-        ########## Status flags #########
-        # --- X-ray source ---
-        self.xrs_Flags = {'connected': False,
-                          'emmiting': False,
-                          'wating_warmup': False,
-                          'warmup_complete': False,
-                          'overload': False,
-                          'interlock': False,
-                          'error': False,}
-
-
         self.after(200, self.update_status_loop)
 
     # --End __init__
@@ -132,14 +183,46 @@ class TomographyGUI(tk.Tk):
         self.after(200, self.update_status_loop)
 
     # ---- Update modules ----
+    def poll_xrs_status(self):
+        # Check interlock status
+        interlock = self.xrs.get_interlock_status()
+        match interlock:
+            case "SIN 0":
+                self.xrs_flags['INTERLOCK'] = False
+            case "SIN 1":
+                self.xrs_flags['INTERLOCK'] = True
+
+        status = self.xrs.get_status
+        match status:
+            case "STS 0":  # Awaiting warmup
+                self.xrs_flags['X_RAY'] = False
+                self.xrs_flags['WARMUP'] = False
+            case "STS 1":  #
+                self.xrs_flags['INTERLOCK'] = True
+                self.xrs_flags['WARMUP'] = False
+            case "STS 2":
+                self.xrs_flags['WARMUP'] = True
+                self.xrs_flags['INTERLOCK'] = True
+            case "STS 3":  # Emitting X-rays
+                self.xrs_flags['X-RAY'] = True
+                self.xrs_flags['INTERLOCK'] = True
+
     def update_xrs_status(self):
-        if self.xrs is None:
+        if not self.xrs:
             self.btn_xon.config(state=tk.DISABLED)
             self.btn_xon.config(state=tk.DISABLED)
             self.xrs_emitting_indicator.config(text="X-Ray Off", bg="gray20")
             for lbl, widget in self.xrs_indicators.items():
                 widget.config(bg="gray")
             return
+        # If X-ray source could be reached:
+        if self.xrs_flags["X_RAY"]:
+            self.xrs_emitting_indicator.config(text="X-Ray ON", bg="red")
+        else:
+            self.xrs_emitting_indicator.config(text="X-Ray OFF", bg="gray20")
+        # Update indicators panel
+        self.xrs_indicators.update()
+
 
 
 
@@ -165,6 +248,7 @@ class TomographyGUI(tk.Tk):
     def init_xrs(self):
         port = self.xrs_port_entry.get().strip()
         try:
+            from xrsource import XRSController
             self.xrs = XRSController(port=port)
         except Exception as e:
             self.xrs = None
@@ -174,6 +258,21 @@ class TomographyGUI(tk.Tk):
                 self.log_msg(f"X-Ray source initialized in port {port}\n")
                 self.xrs.show_status(log_fn=self.log_msg)
         return 0
+
+    def init_motor(self):
+        port = self.motor_port_entry.get().strip()
+        dll = self.motor_dll_entry.get().strip()
+        try:
+            from motor.motor_controller import MotorController
+            self.motor = MotorController(dll_path=dll ,port=port, log_fn=self.log_msg)
+        except Execption as e:
+            self.motor = None
+            return e
+        finally:
+            if self.motor:
+                self.log_msg(f"Motor initialized in port {port}\n")
+                status = self.motor.get_positioner_status()
+                self.motor.show_positioner_status(statusCode=status, log_fn=self.log_msg)
 
     # ==============================================================
     #    Proxy functions
@@ -201,10 +300,18 @@ class TomographyGUI(tk.Tk):
         e = self.init_xrs()
         if e:
             tk.messagebox.showerror(title="X-Ray init error",
-                                    message=f"Failed to initialize X-ray source in port {port}:\n {e}")
+                                    message=f"Failed to initialize X-ray source:\n {e}")
+
+    # ---- Motor ----
+    def connect_motor(self):
+        e = self.init_motor()
+        if e:
+            tk.messagebox.showerror(title="Motor init error",
+                                    message=f"Failed to initialize rotating stage:\n {e}")
 
 
 
+    # ---- Close ----
     def on_close(self):
         if self.xrs:
             self.xrs.close()
@@ -248,25 +355,31 @@ class TomographyGUI(tk.Tk):
         # --- Indicadores verdes/rojos ---
         frame_ind = ttk.Frame(f)
         frame_ind.grid(row=4, column=0, pady=10)
-        self.xrs_indicators = {}
-        labels = ["X-RAY", "WARMUP", "PREHEAT", "OVER", "INTERLOCK", "ERROR"]
-        for i, lbl in enumerate(labels):
-            col = i % 3
-            row = i // 3
-            box = tk.Label(frame_ind, text=f" {lbl} ", bg="green", fg="white", width=10)
-            box.grid(row=row, column=col, padx=5, pady=3)
-            self.xrs_indicators[lbl] = box
+        self.xrs_indicators = StatusIndicators(
+            parent_frame=frame_ind,
+            flags_dict=self.xrs_flags,
+            columns=3
+        )
+
+        # self.xrs_indicators = {}
+        # labels = list(self.xrs_flags.keys())
+        # for i, lbl in enumerate(labels):
+        #     col = i % 3
+        #     row = i // 3
+        #     box = tk.Label(frame_ind, text=f" {lbl} ", bg="green", fg="white", width=10)
+        #     box.grid(row=row, column=col, padx=5, pady=3)
+        #     self.xrs_indicators[lbl] = box
 
         # --- Port ---
         xrs_port_frame = ttk.Frame(f)
-        xrs_port_frame.grid(row=5, column=0, pady=10, sticky="ew")
+        xrs_port_frame.grid(row=5, column=0, pady=10, sticky="w")
         ttk.Label(xrs_port_frame, text="Serial Port:").grid(row=0, column=0)
         self.xrs_port_entry = ttk.Entry(xrs_port_frame, width=10)
         self.xrs_port_entry.insert(0, "COM4")
         self.xrs_port_entry.grid(row=0, column=1, padx=5)
         ttk.Button(xrs_port_frame, text="Connect", command=self.connect_xrs).grid(row=0, column=2, padx=5)
 
-    # Helper function to create boxes Act/Set
+    # Helper function to create voltage and curren indicators and setters
     def _build_act_set_box(self, parent, title, unit, col):
         lf = ttk.LabelFrame(parent, text=title, padding=5, relief="ridge")
         lf.grid(row=0, column=col, padx=8, sticky="ew")
@@ -281,7 +394,7 @@ class TomographyGUI(tk.Tk):
             limit = 300
 
         tk.Label(lf, text="Set", fg="blue").grid(row=1, column=0, sticky="nsew", pady=(0,10))
-        set_field = tk.Spinbox(lf, from_=0, to=limit, increment=1, font=("Consolas", 16), justify="right", width=7).grid(row=1, column=1, columnspan=2, padx=5, pady=5)
+        set_field = tk.Spinbox(lf, from_=0, to=limit, increment=1, font=("Arial", 16), justify="right", width=7).grid(row=1, column=1, columnspan=2, padx=5, pady=5)
         # tk.Entry(lf, width=6, font=("Arial", 14), justify="right").grid(row=1, column=1)
         # tk.Label(lf, text=unit).grid(row=1, column=2, sticky="w")
         return act_field, set_field
@@ -293,13 +406,13 @@ class TomographyGUI(tk.Tk):
         f = self.tab_motor
         f.columnconfigure(0, weight=1)
 
-        # Posición actual
+        # Current position
         pos_frame = ttk.Frame(f)
         pos_frame.grid(row=1, column=0, pady=10)
         ttk.Label(pos_frame, text="Position (°):", foreground="blue").grid(row=0, column=0)
-        self.motor_pos_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10).grid(row=0, column=1, padx=5)
+        self.motor_pos_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10, font=("Arial", 14), anchor="e").grid(row=0, column=1, padx=5)
 
-        # Flechas movimiento
+        # Motion arrows
         move_frame = ttk.Frame(f)
         move_frame.grid(row=2, column=0, pady=5)
         tk.Button(move_frame, text="◀", width=4).grid(row=0, column=0, padx=5)
@@ -314,7 +427,7 @@ class TomographyGUI(tk.Tk):
         self.motor_goto_entry = ttk.Entry(config_frame, width=8).grid(row=1, column=1, padx=5)
         ttk.Button(config_frame, text="GO").grid(row=1, column=2, padx=5)
 
-        # Indicadores motor
+        # Motor indicators
         ind_frame = ttk.Frame(f)
         ind_frame.grid(row=4, column=0, pady=10)
         labels = ["REFERENCED", "READY", "MOVING"]
@@ -324,14 +437,21 @@ class TomographyGUI(tk.Tk):
             box.grid(row=0, column=i, padx=5, pady=3)
             self.motor_inds[lbl] = box
 
-        # Puerto serial motor
+        # Port and DLL
         motor_port_frame = ttk.Frame(f)
-        motor_port_frame.grid(row=5, column=0, pady=10, sticky="ew")
-        ttk.Label(motor_port_frame, text="Motor Port:").grid(row=0, column=0)
+        motor_port_frame.grid(row=5, column=0, pady=10, sticky="w")
+        # DLL field
+        ttk.Label(motor_port_frame, text="Motor DLL:").grid(row=0, column=0)
+        self.motor_dll_entry = ttk.Entry(motor_port_frame, width=30)
+        self.motor_dll_entry.insert(0, DEFAULT_DLLPATH)
+        self.motor_dll_entry.grid(row=0, column=1, padx=5, columnspan=2, pady=5)
+        self.btn_motor_dll = ttk.Button(motor_port_frame, text="Browse...").grid(row=0, column=3, padx=5)
+        # Port field
+        ttk.Label(motor_port_frame, text="Motor Port:").grid(row=1, column=0)
         self.motor_port_entry = ttk.Entry(motor_port_frame, width=10)
         self.motor_port_entry.insert(0, "COM6")
-        self.motor_port_entry.grid(row=0, column=1, padx=5)
-        ttk.Button(motor_port_frame, text="Set").grid(row=0, column=2, padx=5)
+        self.motor_port_entry.grid(row=1, column=1, padx=5,sticky="w")
+        self.btn_motor_port = ttk.Button(motor_port_frame, text="Connect").grid(row=1, column=2, padx=5, sticky="w")
 
     # ============================================================
     #   Pestaña 3: Cámara y Adquisición

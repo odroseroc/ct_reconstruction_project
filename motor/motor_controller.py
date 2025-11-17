@@ -105,7 +105,7 @@ class MotorController:
         if result_code != 0:
             # Assume last element is error string if present
             err = result_tuple[-1] if len(result_tuple) > 1 else None
-            raise RuntimeError(f"Error executing {command}: {self.ERROR_DICT.get(err, f"unknown. Ended with code {result_code}")}")
+            raise RuntimeError(f'Error executing {command}: {self.ERROR_DICT.get(err, f"Unknown error {err}")}')
 
         # On success, return all output elements except the result code
         # (could be a single value or multiple)
