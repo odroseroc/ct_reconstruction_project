@@ -139,7 +139,7 @@ class XRSController:
     def get_preheat_status(self) -> str:
         """Returns the preheating status.
         "SPH 0": Preheating is complete.
-        "SPH 1": Preheating in profress.
+        "SPH 1": Preheating in progress.
         """
         return self.send_command("SPH")
     

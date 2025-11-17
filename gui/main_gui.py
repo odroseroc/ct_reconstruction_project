@@ -33,6 +33,7 @@ class StatusIndicators:
         self.flags = flags_dict
         self.columns = columns
         self.widgets = {}   # {'FLAG_NAME': Label}
+        self.blinking = {} # { "FLAG" : {"state":bool, "job":after_id} }
 
         self._build()
 
@@ -67,6 +68,56 @@ class StatusIndicators:
         for widget in self.widgets.values():
             widget.config(bg="gray20")
 
+    # -----------------------------------------------------------
+    def blink(self, key, color_on="red", color_off="green", interval=500):
+        """
+        Hace parpadear un indicador específico.
+        key : nombre del indicador
+        interval : tiempo en ms
+        """
+        if key not in self.widgets:
+            return
+
+        # Si ya está parpadeando, no lo iniciamos de nuevo
+        if self.blinking[key]["state"]:
+            return
+
+        self.blinking[key]["state"] = True
+
+        def _toggle():
+            # Si fue detenido mientras estaba en cola
+            if not self.blinking[key]["state"]:
+                return
+
+            widget = self.widgets[key]
+            current_bg = widget.cget("bg")
+            new_bg = color_off if current_bg == color_on else color_on
+            widget.config(bg=new_bg)
+
+            # programar el próximo parpadeo
+            job = widget.after(interval, _toggle)
+            self.blinking[key]["job"] = job
+
+        _toggle()
+
+    # -----------------------------------------------------------
+    def stop_blink(self, key):
+        """Detiene el parpadeo y devuelve el color normal según la flag."""
+        if key not in self.widgets:
+            return
+
+        info = self.blinking[key]
+
+        if info["job"] is not None:
+            self.widgets[key].after_cancel(info["job"])
+
+        info["state"] = False
+        info["job"] = None
+
+        # restaurar color según flag
+        val = self.flags.get(key, False)
+        self.widgets[key].config(bg="green" if val else "red")
+
 
 class TomographyGUI(tk.Tk):
     def __init__(self):
@@ -85,13 +136,18 @@ class TomographyGUI(tk.Tk):
 
         ########## Status flags #########
         # --- X-ray source ---
-        self.xrs_flags = {'X_RAY': False,
+        self.xrs_indicator_flags = {'X_RAY': False, # True if X-rays can be emitted, but not currently emitting
                           'WARMUP': False,  # Only true if warmup is complete
                           'PREHEAT': True,  # True if no preheat is ongoing
                           'OVER': True,  # True if the source is NOT in STS 4: Overload protection
                           'INTERLOCK': False,  # True if interlock is closed
                           'ERROR': True,  # True if there is NO error
-                          }
+                                    }
+        self.xrs_emitting_flag = False
+        self.xrs_values = {'volt_set': 0,
+                           'curr_set': 0,
+                           'focus': 0 # 0:small, 1:medium, 2:large
+                           }
 
         ########## Left panel: Control tabs + log console ##########
         left_frame = tk.Frame(self)
@@ -113,6 +169,7 @@ class TomographyGUI(tk.Tk):
             height=2
         )
         self.xrs_emitting_indicator.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+        self._blink_state = False
 
         # Notebook with tabs
         left_notebook = ttk.Notebook(left_frame)
@@ -180,7 +237,7 @@ class TomographyGUI(tk.Tk):
         self.update_xrs_status()
         self.update_motor_status()
         self.update_camera_status()
-        self.after(200, self.update_status_loop)
+        self.after(100, self.update_status_loop)
 
     # ---- Update modules ----
     def poll_xrs_status(self):
@@ -188,24 +245,57 @@ class TomographyGUI(tk.Tk):
         interlock = self.xrs.get_interlock_status()
         match interlock:
             case "SIN 0":
-                self.xrs_flags['INTERLOCK'] = False
+                self.xrs_indicator_flags['INTERLOCK'] = False
             case "SIN 1":
-                self.xrs_flags['INTERLOCK'] = True
+                self.xrs_indicator_flags['INTERLOCK'] = True
 
         status = self.xrs.get_status
         match status:
             case "STS 0":  # Awaiting warmup
-                self.xrs_flags['X_RAY'] = False
-                self.xrs_flags['WARMUP'] = False
-            case "STS 1":  #
-                self.xrs_flags['INTERLOCK'] = True
-                self.xrs_flags['WARMUP'] = False
-            case "STS 2":
-                self.xrs_flags['WARMUP'] = True
-                self.xrs_flags['INTERLOCK'] = True
+                self.xrs_indicator_flags['X_RAY'] = False
+                self.xrs_indicator_flags['WARMUP'] = False
+                self.xrs_indicator_flags['OVER'] = True
+                self.xrs_indicator_flags['PREHEAT'] = True
+                self.xrs_indicator_flags['ERROR'] = True
+                self.xrs_emitting_flag = False
+            case "STS 1":  # Warm-up in progress
+                self.xrs_indicator_flags['X_RAY'] = False
+                self.xrs_indicator_flags['WARMUP'] = False
+                self.xrs_indicator_flags['OVER'] = True
+                self.xrs_indicator_flags['PREHEAT'] = True
+                self.xrs_indicator_flags['ERROR'] = True
+                self.xrs_emitting_flag = True
+            case "STS 2": # Ready to emit X-rays
+                self.xrs_indicator_flags['X_RAY'] = True
+                self.xrs_indicator_flags['WARMUP'] = True
+                self.xrs_indicator_flags['OVER'] = True
+                self.xrs_indicator_flags['PREHEAT'] = True
+                self.xrs_indicator_flags['ERROR'] = True
+                self.xrs_emitting_flag = False
             case "STS 3":  # Emitting X-rays
-                self.xrs_flags['X-RAY'] = True
-                self.xrs_flags['INTERLOCK'] = True
+                self.xrs_indicator_flags['X_RAY'] = False
+                self.xrs_indicator_flags['WARMUP'] = False
+                self.xrs_indicator_flags['OVER'] = True
+                self.xrs_indicator_flags['PREHEAT'] = True
+                self.xrs_indicator_flags['ERROR'] = True
+                self.xrs_emitting_flag = True
+            case "STS 4": # Overload protection activated
+                self.xrs_indicator_flags['X_RAY'] = False
+                self.xrs_indicator_flags['WARMUP'] = False
+                self.xrs_indicator_flags['OVER'] = False
+                self.xrs_indicator_flags['PREHEAT'] = True
+                self.xrs_indicator_flags['ERROR'] = True
+                self.xrs_emitting_flag = False
+
+    def blink_emitting_indicator(self):
+        """Make the global X-ray indicator blink when X-rays are ON."""
+        if self.xrs_emitting_flag:
+            self._blink_state = not self._blink_state
+            color = "red" if self._blink_state else "green"
+            self.xrs_emitting_indicator.config(bg=color)
+            self.after(500, self.blink_emitting_indicator)
+        else:
+            return
 
     def update_xrs_status(self):
         if not self.xrs:
@@ -216,15 +306,21 @@ class TomographyGUI(tk.Tk):
                 widget.config(bg="gray")
             return
         # If X-ray source could be reached:
-        if self.xrs_flags["X_RAY"]:
-            self.xrs_emitting_indicator.config(text="X-Ray ON", bg="red")
-        else:
-            self.xrs_emitting_indicator.config(text="X-Ray OFF", bg="gray20")
         # Update indicators panel
         self.xrs_indicators.update()
-
-
-
+        if not self.xrs_indicator_flags["WARMUP"]:
+            self.xrs_indicators.blink("WARMUP")
+        else:
+            self.xrs_indicators.stop_blink("WARMUP")
+        # Handle emission indicators
+        if self.xrs_emitting_flag:
+            self.xrs_emitting_indicator.config(text="X-Ray ON", bg="red")
+            # Blink indicators
+            self.blink_emitting_indicator()
+            self.xrs_indicators.blink("X_RAY")
+        else:
+            self.xrs_emitting_indicator.config(text="X-Ray OFF", bg="gray20")
+            self.xrs_indicators.stop_blink("X_RAY")
 
 
     def update_motor_status(self):
@@ -256,6 +352,9 @@ class TomographyGUI(tk.Tk):
         finally:
             if self.xrs:
                 self.log_msg(f"X-Ray source initialized in port {port}\n")
+                self.xrs.set_emission_mode(mode=3) # Start the source in continuous mode
+                self.xrs.set_auto_off_time(seconds=30)
+                self.xrs.set_focal_spot_mode(mode=2)
                 self.xrs.show_status(log_fn=self.log_msg)
         return 0
 
@@ -349,6 +448,7 @@ class TomographyGUI(tk.Tk):
         frame_focus.grid(row=3, column=0, pady=10)
         ttk.Label(frame_focus, text="Focus Mode:", foreground="blue").grid(row=0, column=0)
         self.combo_focus = ttk.Combobox(frame_focus, values=["Small", "Medium", "Large"], width=10)
+        self.combo_focus.current(2)
         self.combo_focus.current(0)
         self.combo_focus.grid(row=0, column=1, padx=5)
 
@@ -357,18 +457,9 @@ class TomographyGUI(tk.Tk):
         frame_ind.grid(row=4, column=0, pady=10)
         self.xrs_indicators = StatusIndicators(
             parent_frame=frame_ind,
-            flags_dict=self.xrs_flags,
+            flags_dict=self.xrs_indicator_flags,
             columns=3
         )
-
-        # self.xrs_indicators = {}
-        # labels = list(self.xrs_flags.keys())
-        # for i, lbl in enumerate(labels):
-        #     col = i % 3
-        #     row = i // 3
-        #     box = tk.Label(frame_ind, text=f" {lbl} ", bg="green", fg="white", width=10)
-        #     box.grid(row=row, column=col, padx=5, pady=3)
-        #     self.xrs_indicators[lbl] = box
 
         # --- Port ---
         xrs_port_frame = ttk.Frame(f)
