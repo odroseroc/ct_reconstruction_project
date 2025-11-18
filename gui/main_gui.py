@@ -18,6 +18,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from gui.status_indicators import StatusIndicators
+from core.log_utils import no_op
 # Imports handled by lazy import in development phase
 # from motor import MotorController
 # from xrsource import XRSController
@@ -30,7 +31,7 @@ class TomographyGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Tomography Control Panel (Mock GUI)")
-        self.geometry("1200x900")
+        self.geometry("1500x900")
         self.configure(bg="#e0e0e0")
         self.master_tick = [0] # Global tick for blinking indicators. Must be a mutable type to be parsed by reference.
 
@@ -55,9 +56,9 @@ class TomographyGUI(tk.Tk):
         self.xrs_emitting_flag = False
 
         self.motor_indicator_flags = {
-            'REFERENCED': False,
-            'READY': False,
-            'MOVING': False,
+            'REFERENCED': False, # True if motor is referenced
+            'READY': False, # True if motor is ready for motion
+            'MOVING': False, # True if motor is NOT moving
             }
         
         ########## Values dicts ##########
@@ -280,9 +281,9 @@ class TomographyGUI(tk.Tk):
     # ---------- Motor ----------
     def poll_motor_status(self):
         positioner_status = self.motor.get_positioner_status()
-        self.motor_indicator_flags['REFERENCED'] = positioner_status.startswith('0') or positioner_status in ['0F', '10', '11']
+        self.motor_indicator_flags['REFERENCED'] = not(positioner_status.startswith('0') or positioner_status in ['0F', '10', '11'])
         self.motor_indicator_flags['READY'] = positioner_status in ['32', '33', '34', '35']
-        self.motor_indicator_flags['MOVING'] = positioner_status in ['28', '1E', '1F']
+        self.motor_indicator_flags['MOVING'] = not(positioner_status in ['28', '1E', '1F']) # Indicator is green (True) if NOT moving
 
     def update_motor_status(self):
         # ---- NO MOTOR CONNECTED ----
@@ -296,6 +297,7 @@ class TomographyGUI(tk.Tk):
         self.poll_motor_status()
         # Update indicators
         self.motor_indicators.update()
+
 
     def update_camera_status(self):
         pass
@@ -323,7 +325,6 @@ class TomographyGUI(tk.Tk):
             return e
         finally:
             if self.xrs:
-                self.log_msg("[X-ray Source] --------------------")
                 self.log_msg(f"X-Ray source initialized in port {port}")
                 self.xrs.set_emission_mode(mode=3) # Start the source in continuous mode
                 self.xrs.set_auto_off_time(seconds=30)
@@ -344,14 +345,14 @@ class TomographyGUI(tk.Tk):
         port = self.motor_port_entry.get().strip()
         dll = self.motor_dll_entry.get().strip()
         try:
-            from motor.motor_controller import MotorController
-            self.motor = MotorController(dll_path=dll ,port=port, log_fn=self.log_msg)
-        except Execption as e:
+            if not self.motor:
+                from motor.motor_controller import MotorController
+                self.motor = MotorController(dll_path=dll ,port=port, log_fn=no_op)
+        except Exception as e:
             self.motor = None
             return e
         finally:
             if self.motor:
-                self.log_msg("[Rotaing stage] --------------------")
                 self.log_msg(f"Rotating stage initialized in port {port}")
                 status = self.motor.get_positioner_status()
                 self.motor.show_positioner_status(statusCode=status, log_fn=self.log_msg)
@@ -372,7 +373,8 @@ class TomographyGUI(tk.Tk):
                 self.log_msg("X-Ray source warming up...")
             case "STS 2":
                 self.xrs.xon()
-                self.log_msg(self.xrs.show_batch_status(log_fn=self.log_msg))
+                self.log_msg("X-Ray source turned ON.")
+                time.sleep(0.5)  # Small delay to allow status update
             case _:
                 pass
 
@@ -380,6 +382,7 @@ class TomographyGUI(tk.Tk):
         if not self.xrs:
             return
         self.xrs.xoff()
+        self.log_msg("X-Ray source turned OFF.")
 
     def connect_xrs(self):
         e = self.init_xrs()
