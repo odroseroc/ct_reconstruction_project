@@ -12,7 +12,7 @@ import tifffile as tfff
 from datetime import datetime
 # Imports from he project
 from core.log_utils import no_op
-from recon import AcquisitionIndex
+from acq import AcquisitionIndex
 
 def import_images(paths: List[str] | str, 
                   log_fn: Callable[[str], None] = no_op) -> list[np.ndarray]:
@@ -138,7 +138,7 @@ def crop_image(img: NDArray,
     return img[rows_range[0]:rows_range[1], cols_range[0]:cols_range[1]]
 
 def copy_metadata_header(file, sart_line=3):
-    # By default, the metadata file contains two lines containing the name of the acquisition and te date of creation, but metadata files created with preliminary versions of this code may differ. Please verify the metadata file.
+    # By default, the metadata file contains two lines containing the name of the acq and te date of creation, but metadata files created with preliminary versions of this code may differ. Please verify the metadata file.
     file=Path(file)
     header_lines = []
 

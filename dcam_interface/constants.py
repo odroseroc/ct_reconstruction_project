@@ -36,16 +36,16 @@ BITPIXEL_DICT = {
 }
 
 ###############################################################################
-# [Image acquisition]
-DCAM_WAITSTATUS_COMPLETED = 0   # Image acquisition is complete.
-DCAM_WAITSTATUS_UNCOMPLETED = 1 # Image acquisition is not complete.
+# [Image acq]
+DCAM_WAITSTATUS_COMPLETED = 0   # Image acq is complete.
+DCAM_WAITSTATUS_UNCOMPLETED = 1 # Image acq is not complete.
 
 WAITSTATUS_DICT = {
-    DCAM_WAITSTATUS_COMPLETED: 'Image acquisition is complete.',
-    DCAM_WAITSTATUS_UNCOMPLETED: 'Image acquisition is not complete.'
+    DCAM_WAITSTATUS_COMPLETED: 'Image acq is complete.',
+    DCAM_WAITSTATUS_UNCOMPLETED: 'Image acq is not complete.'
 }
 
-DCAM_WAIT_INFINITE = -1         # Wait until image acquisition is complete.
+DCAM_WAIT_INFINITE = -1         # Wait until image acq is complete.
 
 ###############################################################################
 # [Device state]

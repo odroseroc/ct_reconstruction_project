@@ -128,8 +128,8 @@ if __name__ == "__main__":
     print(f'CCD sensor type: {nType.value}: {CCDTYPE_DICT[nType.value]}')
 
     # Dictionaries to translate constants
-    WAITSTATUS_DICT = {DCAM_WAITSTATUS_UNCOMPLETED: 'Image acquisition is not complete.',
-                    DCAM_WAITSTATUS_COMPLETED: 'Image acquisition is complete.'}
+    WAITSTATUS_DICT = {DCAM_WAITSTATUS_UNCOMPLETED: 'Image acq is not complete.',
+                    DCAM_WAITSTATUS_COMPLETED: 'Image acq is complete.'}
     capture_img()
 
     dcam.DcamStop()

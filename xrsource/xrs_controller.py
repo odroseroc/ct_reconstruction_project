@@ -212,13 +212,14 @@ class XRSController:
         """Returns the warm-up status, indicating that it does not start or it is in progress or complete."""
         return self.send_command("SWE")
     
-    def get_focal_spot_mode(self) -> str:
+    def get_focal_spot_mode(self) -> int:
         """Returns currently selected focal spot mode.
         mode = 0: small focal spot
         mode = 1: medium focal spot
         mode = 2: large focal spot
         """
-        return self.send_command("SCF")
+        resp = self.send_command("SCF")  # resp = "SCF 0"
+        return int(resp.split()[1])
     
     def get_interlock_status(self) -> str:
         """Returns the interlock status.

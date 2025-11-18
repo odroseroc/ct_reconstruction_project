@@ -41,7 +41,7 @@ class Sinogram:
         Load a sinogram from a .npz file
         """
         filepath = Path(filepath)
-        loaded = np.load(filename)
+        loaded = np.load(filepath)
         return cls(data=loaded["data"], angles=loaded["angles"])
 
     @classmethod
@@ -82,10 +82,10 @@ class Sinogram:
         else:
             raise ValueError("Index must be either a slice or an integer")
 
-    def get_data(self)
+    def get_data(self):
         return self._data
 
-    def get_angles(self)
+    def get_angles(self):
         return self._angles
 
 if __name__ == "__main__":

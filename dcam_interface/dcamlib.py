@@ -182,9 +182,9 @@ dcam.DcamGetFrameBytes.restype = c_bool
 #          If the function fails the return value is FALSE (0).
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
-#          1. This function issues an instruction to start image acquisition. 
-#             Since image acquisition is not complete even when this function ends, 
-#             use the DcamWait function to check whether image acquisition is complete.
+#          1. This function issues an instruction to start image acq.
+#             Since image acq is not complete even when this function ends,
+#             use the DcamWait function to check whether image acq is complete.
 #          2. The necessary buffer size can be obtained with the DcamGetFrameBytes function.
 #============================================================================
 dcam.DcamCapture.argtypes = [c_void_p, c_int]
@@ -203,9 +203,9 @@ dcam.DcamCapture.restype = c_bool
 #          If the function fails the return value is FALSE (0).
 #          To obtain detailed error information, use the DcamGetLastError function.
 # [Note]
-#          1. This function issues an instruction to start image acquisition. 
-#             Since image acquisition is not complete even when this function ends, 
-#             use the DcamWait function to check whether image acquisition is complete.
+#          1. This function issues an instruction to start image acq.
+#             Since image acq is not complete even when this function ends,
+#             use the DcamWait function to check whether image acq is complete.
 #          2. The necessary buffer size can be obtained with the DcamGetFrameBytes function.
 #============================================================================
 dcam.DcamCaptureReverseX.argtypes = [c_void_p, c_int]
@@ -213,7 +213,7 @@ dcam.DcamCaptureReverseX.restype = c_bool
 
 #============================================================================
 # DcamStop()
-#  Stop image acquisition.
+#  Stop image acq.
 # ---------------------------------------------------------------------------
 # [Argument]
 #          None. 
@@ -228,23 +228,23 @@ dcam.DcamStop.restype = c_bool
 
 #============================================================================
 # DcamWait()
-#  Wait for image acquisition to complete.
+#  Wait for image acq to complete.
 # ---------------------------------------------------------------------------
 # [Argument]
 #          pStatus     : /O: Specify the address of the variable where image 
-#                            acquisition end status is to be stored. Whether 
-#                            image acquisition is complete or not can be checked 
+#                            acq end status is to be stored. Whether
+#                            image acq is complete or not can be checked
 #                            by the value in this variable. 
 #                            The value is one of the following:
-#                              DCAM_WAITSTATUS_COMPLETED   : Image acquisition is complete.
-#                              DCAM_WAITSTATUS_UNCOMPLETED : Image acquisition is not complete.
+#                              DCAM_WAITSTATUS_COMPLETED   : Image acq is complete.
+#                              DCAM_WAITSTATUS_UNCOMPLETED : Image acq is not complete.
 #
 #                            This may be set to NULL when "DCAM_WAIT_INFINITE" is 
 #                            specified for "nTimeout".
 #                              
 #          nTimeout    :I/ : Specify the length of timeout in milliseconds.
 #                            When "DCAM_WAIT_INFINITE" is specified here, the process 
-#                            waits until image acquisition is finished.
+#                            waits until image acq is finished.
 #                            When "0" is specified, control is returned immediately 
 #                            after checking the status.
 # [Return values]

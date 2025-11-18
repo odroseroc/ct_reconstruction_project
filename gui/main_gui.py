@@ -17,8 +17,9 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from gui.status_indicators import StatusIndicators
+from gui.widgets import StatusIndicators, ParamsForm
 from core.log_utils import no_op
+from acq import AcquisitionParams
 # Imports handled by lazy import in development phase
 # from motor import MotorController
 # from xrsource import XRSController
@@ -492,22 +493,28 @@ class TomographyGUI(tk.Tk):
         pos_frame = ttk.Frame(f)
         pos_frame.grid(row=1, column=0, pady=10)
         ttk.Label(pos_frame, text="Position (°):", foreground="blue").grid(row=0, column=0)
-        self.position_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10, font=("Arial", 14), anchor="e").grid(row=0, column=1, padx=5)
+        self.position_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10, font=("Arial", 14), anchor="e")
+        self.position_indicator.grid(row=0, column=1, padx=5)
 
         # Motion arrows
         move_frame = ttk.Frame(f)
         move_frame.grid(row=2, column=0, pady=5)
-        self.btn_bk_step = tk.Button(move_frame, text="◀", width=4).grid(row=0, column=0, padx=5)
-        self.btn_fw_step = tk.Button(move_frame, text="▶", width=4).grid(row=0, column=1, padx=5)
+        self.btn_bk_step = tk.Button(move_frame, text="◀", width=4)
+        self.btn_bk_step.grid(row=0, column=0, padx=5)
+        self.btn_fw_step = tk.Button(move_frame, text="▶", width=4)
+        self.btn_fw_step.grid(row=0, column=1, padx=5)
 
         # STEP y GO TO
         config_frame = ttk.Frame(f)
         config_frame.grid(row=3, column=0, pady=10)
         ttk.Label(config_frame, text="STEP (°):").grid(row=0, column=0)
-        self.motor_step_entry = ttk.Entry(config_frame, width=8).grid(row=0, column=1, padx=5)
+        self.motor_step_entry = ttk.Entry(config_frame, width=8)
+        self.motor_step_entry.grid(row=0, column=1, padx=5)
         ttk.Label(config_frame, text="GO TO (°):").grid(row=1, column=0)
-        self.motor_goto_entry = ttk.Entry(config_frame, width=8).grid(row=1, column=1, padx=5)
-        ttk.Button(config_frame, text="GO").grid(row=1, column=2, padx=5)
+        self.motor_goto_entry = ttk.Entry(config_frame, width=8)
+        self.motor_goto_entry.grid(row=1, column=1, padx=5)
+        self.btn_motor_go = ttk.Button(config_frame, text="GO")
+        self.btn_motor_go.grid(row=1, column=2, padx=5)
 
         # ---- Motor indicators ----
         ind_frame = ttk.Frame(f)
@@ -559,20 +566,29 @@ class TomographyGUI(tk.Tk):
         # Botones cámara
         btn_frame = ttk.Frame(cam_frame)
         btn_frame.grid(row=3, column=0, columnspan=2, pady=5)
-        ttk.Button(btn_frame, text="Init Camera").grid(row=0, column=0, padx=5)
-        ttk.Button(btn_frame, text="Start Live").grid(row=0, column=1, padx=5)
-        ttk.Button(btn_frame, text="Stop Live").grid(row=0, column=2, padx=5)
+        self.btn_cam_init = ttk.Button(btn_frame, text="Init Camera").grid(row=0, column=0, padx=5)
+        self.btn_start_live = ttk.Button(btn_frame, text="Start Live").grid(row=0, column=1, padx=5)
+        self.btn_stop_live = ttk.Button(btn_frame, text="Stop Live").grid(row=0, column=2, padx=5)
 
-        # Config adquisición
+        # Config acquisition
         acq_frame = ttk.LabelFrame(f, text="Acquisition Settings")
         acq_frame.grid(row=2, column=0, pady=5, padx=5, sticky="ew")
-        labels = ["Step (°)", "# Steps", "Images/Step", "Start Pos (°)", "Base Folder"]
-        defaults = ["90", "4", "5", "-180", "C:/Xray/Images"]
-        for i, (lbl, val) in enumerate(zip(labels, defaults)):
-            ttk.Label(acq_frame, text=lbl).grid(row=i, column=0, sticky="e")
-            e = ttk.Entry(acq_frame, width=25)
-            e.insert(0, val)
-            e.grid(row=i, column=1, sticky="w", pady=2)
+        # labels = ["Step (°)", "# Revs", "Images/Step", "Start Pos (°)", "Base Folder"]
+        # defaults = ["1", "1", "5", "0", "C:/Xray/Images"]
+        # for i, (lbl, val) in enumerate(zip(labels, defaults)):
+        #     ttk.Label(acq_frame, text=lbl).grid(row=i, column=0, sticky="e")
+        #     e = ttk.Entry(acq_frame, width=25)
+        #     e.insert(0, val)
+        #     e.grid(row=i, column=1, sticky="w", pady=2)
+        # Create entrys dinamically
+        self.acq_form = ParamsForm(acq_frame, AcquisitionParams)
+        # Adjust labels
+        self.acq_form.labels['step_deg'].config(text="Step (°) ")
+        self.acq_form.labels['num_revs'].config(text="# Revs ")
+        self.acq_form.labels['imgs_per_step'].config(text="Images / Step ")
+        self.acq_form.labels['start_pos_deg'].config(text="Start Pos (°) ")
+        self.acq_form.labels['base_folder'].config(text="Base Folder ")
+        self.acq_form.entries['base_folder'].config(width=30)
         ttk.Button(acq_frame, text="Browse...").grid(row=4, column=2, padx=5)
         ttk.Button(acq_frame, text="Start", style="Accent.TButton").grid(row=5, column=1, pady=10)
 

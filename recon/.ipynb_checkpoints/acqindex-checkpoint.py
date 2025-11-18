@@ -16,11 +16,11 @@ class AcquisitionIndex():
     Parameters
     ----------
     filepaths : list of str or Path
-        List of paths to the acquisition image files.
+        List of paths to the acq image files.
     angles : np.ndarray
-        1D array with the angles corresponding to each acquisition step.
+        1D array with the angles corresponding to each acq step.
     device : str, optional
-        Name of the device used for acquisition. Default is 'cam'.
+        Name of the device used for acq. Default is 'cam'.
     steps : tuple
         Tuple of AcquisitionStep namedtuples, linking each filepath with its corresponding angle.
     """
@@ -33,7 +33,7 @@ class AcquisitionIndex():
     @classmethod
     def from_file(cls, metadata_file: str, device: str='cam', separator: str ="|"):
         """
-        Load an acquisition index from a metadata.txt file
+        Load an acq index from a metadata.txt file
         """
         angles = []
         filepaths = []
@@ -60,12 +60,12 @@ class AcquisitionIndex():
 
     def create_sinogram(self, row: int, crop=None, max_projections=None, log_fn=print, log_freq=60) -> Sinogram:
         """
-        Create a sinogram from the indexed acquisition images by extracting a specific row from each image.
+        Create a sinogram from the indexed acq images by extracting a specific row from each image.
 
         Parameters
         ----------
         row : int
-            Row index to extract from each acquisition image.
+            Row index to extract from each acq image.
         crop : tuple, optional
             Tuple specifying the (start, end) indices to crop the projections. Default is None (no cropping).
         max_projections : int, optional

@@ -85,3 +85,41 @@ class StatusIndicators:
         # restaurar color según flag
         val = self.flags.get(key, False)
         self.widgets[key].config(bg="green" if val else "red")
+
+class ParamsForm:
+    def __init__(self, parent, dataclass_type):
+        self.parent = parent
+        self.dataclass_type = dataclass_type
+        self.entries = {}  # {field_name: ttk.Entry}
+        self.labels = {} # {field_name: ttk.Label}
+
+        self._build()
+
+    def _build(self):
+        from dataclasses import fields
+
+        for i, field in enumerate(fields(self.dataclass_type)):
+            name = field.name
+            default = getattr(self.dataclass_type(), name)
+
+            label = ttk.Label(self.parent, text=name.replace("_", " ").title())
+            label.grid(row=i, column=0, sticky="e")
+
+            entry = ttk.Entry(self.parent, width=20)
+            entry.insert(0, str(default))
+            entry.grid(row=i, column=1, sticky="w", pady=2)
+
+            self.labels[name] = label
+            self.entries[name] = entry
+
+    def get_params(self):
+        """Devuelve los valores actuales como instancia de la dataclass."""
+        kwargs = {}
+        for name, entry in self.entries.items():
+            val = entry.get()
+
+            # Convertimos el tipo apropiado basado en la dataclass original
+            field_type = self.dataclass_type.__annotations__[name]
+            kwargs[name] = field_type(val)
+
+        return self.dataclass_type(**kwargs)
