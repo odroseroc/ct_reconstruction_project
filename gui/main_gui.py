@@ -17,6 +17,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+from gui.status_indicators import StatusIndicators
 # Imports handled by lazy import in development phase
 # from motor import MotorController
 # from xrsource import XRSController
@@ -24,90 +25,6 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # ====== GUI for X-ray source, rotating stage and camera control ====== #
 DEFAULT_DLLPATH = r'C:\Windows\Microsoft.NET\assembly\GAC_64\Newport.SMC100.CommandInterface\v4.0_2.0.0.3__d9d722840772240b\Newport.SMC100.CommandInterface.dll'
 UPDATE_INTERVAL_MS = 200  # Interval to update status
-
-class StatusIndicators:
-    """
-    Administer logical flags of a device and its indicator labels.
-    """
-    def __init__(self, parent_frame, flags_dict, columns, tick):
-        """
-        parent_frame : Frame where indicators are located
-        flags_dict   : dictionary {'FLAG_NAME': bool}
-        columns      : number of columns in the grid
-        tick         : reference to a global tick counter (for blinking)
-        """
-        self.parent = parent_frame
-        self.flags = flags_dict
-        self.columns = columns
-        self.tick = tick
-        self.widgets = {}   # {'FLAG_NAME': Label}
-        # self.blinking = {
-        #     "WARMUP": False,
-        #     "X_RAY": False,
-        # } # { "FLAG" : {"state":bool, "job":after_id} }
-
-        self._build()
-
-    # -----------------------------------------------------------
-    def _build(self):
-        """Build labels based on the glags dict's keys."""
-        for i, key in enumerate(self.flags.keys()):
-            row = i // self.columns
-            col = i % self.columns
-
-            lbl = tk.Label(
-                self.parent,
-                text=f" {key} ",
-                bg="gray20",
-                fg="white",
-                width=12
-            )
-            lbl.grid(row=row, column=col, padx=5, pady=4)
-            self.widgets[key] = lbl
-
-    # -----------------------------------------------------------
-    def update(self):
-        """Update colors according to each flag."""
-        for key, widget in self.widgets.items():
-            value = self.flags.get(key, False)
-
-            widget.config(bg="green" if value else "red")
-
-    # -----------------------------------------------------------
-    def reset(self):
-        """Turns OFF all visual indicators."""
-        for widget in self.widgets.values():
-            widget.config(bg="gray20")
-
-    # -----------------------------------------------------------
-    def blink(self, key, color_on="red", color_off="green"):
-        """
-        Hace parpadear un indicador específico.
-        key : nombre del indicador
-        interval : tiempo en ms
-        """
-        if key not in self.widgets:
-            return
-        
-        def _toggle():
-            widget = self.widgets[key]
-            current_bg = widget.cget("bg")
-            new_bg = color_off if current_bg == color_on else color_on
-            widget.config(bg=new_bg)
-        
-        if self.tick[0] % 2 == 0:
-            _toggle()
-
-    # -----------------------------------------------------------
-    def stop_blink(self, key):
-        """Detiene el parpadeo y devuelve el color normal según la flag."""
-        if key not in self.widgets:
-            return
-        
-        # restaurar color según flag
-        val = self.flags.get(key, False)
-        self.widgets[key].config(bg="green" if val else "red")
-
 
 class TomographyGUI(tk.Tk):
     def __init__(self):
@@ -406,6 +323,7 @@ class TomographyGUI(tk.Tk):
             return e
         finally:
             if self.xrs:
+                self.log_msg("[X-ray Source] --------------------")
                 self.log_msg(f"X-Ray source initialized in port {port}")
                 self.xrs.set_emission_mode(mode=3) # Start the source in continuous mode
                 self.xrs.set_auto_off_time(seconds=30)
@@ -419,6 +337,7 @@ class TomographyGUI(tk.Tk):
                 self.volt_entry.insert(0, str(volt))
                 self.curr_entry.delete(0, tk.END)
                 self.curr_entry.insert(0, str(curr))
+                self.log_msg("-----------------------------------")
         return 0
 
     def init_motor(self):
@@ -432,9 +351,11 @@ class TomographyGUI(tk.Tk):
             return e
         finally:
             if self.motor:
+                self.log_msg("[Rotaing stage] --------------------")
                 self.log_msg(f"Rotating stage initialized in port {port}")
                 status = self.motor.get_positioner_status()
                 self.motor.show_positioner_status(statusCode=status, log_fn=self.log_msg)
+                self.log_msg("------------------------------------")
 
     # ==============================================================
     #    Proxy functions
@@ -676,20 +597,6 @@ class TomographyGUI(tk.Tk):
         # log_frame.grid(row=2, column=0, sticky="nsew", pady=5)
         # self.log = scrolledtext.ScrolledText(log_frame, state="normal", height=10)
         # self.log.pack(expand=True, fill="both")
-
-    # ============================================================
-    #   Lógica visual simulada
-    # ============================================================
-    def toggle_rx(self):
-        self.rx_on = not self.rx_on
-        self.log.insert(tk.END, f"{time.strftime('%H:%M:%S')} - RX {'ON' if self.rx_on else 'OFF'}\n")
-        self.log.see(tk.END)
-
-    def toggle_rx_indicator(self):
-        color = "red" if self.rx_on else "gray"
-        current_color = self.xrs_emitting_indicator.cget("bg")
-        self.xrs_emitting_indicator.config(bg=color if current_color != color else color)
-        self.after(500, self.toggle_rx_indicator)
 
 
 

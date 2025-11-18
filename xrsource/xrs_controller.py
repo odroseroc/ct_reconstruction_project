@@ -41,15 +41,20 @@ class XRSController:
         }
     
     def __init__(self, port='COM4', timeout=0.1):
-        self.ser = serial.Serial(
-            port=port,
-            baudrate=38400,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=timeout
-        )
-        self._closed = False
+        self._closed = True
+        self.ser = None
+        try:
+            self.ser = serial.Serial(
+                port=port,
+                baudrate=38400,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                timeout=timeout
+            )
+            self._closed = False
+        except (serial.SerialException, OSError):
+            self.__del__()
 
     def send_command(self, cmd) -> str:
         """Send a command to the x-ray source and return the response."""
@@ -227,8 +232,10 @@ class XRSController:
     
     def close(self, log_fn=print) -> None:
         """Close the serial connection."""
-        if not self.ser or not self.ser.is_open:
+        if not self.ser:
             return # Serial port is already closed
+        elif self.ser.is_open:
+            return
         try:
             self.xoff()
         except Exception:
@@ -240,10 +247,20 @@ class XRSController:
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+        try:
+            self.xoff()
+        except Exception:
+            pass
+        finally:
+            self.ser.close()
     
     def __del__(self):
-        self.close()
+        try:
+            self.xoff()
+        except Exception:
+            pass
+        finally:
+            self.ser.close()
 
 def xrs_basic_test():
     '''Basic usage of the XRaySource class.'''
