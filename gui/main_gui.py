@@ -252,7 +252,8 @@ class TomographyGUI(tk.Tk):
         self.update_camera_status()
         self.after(UPDATE_INTERVAL_MS, self.update_status_loop)
 
-    # ---- Update modules ----
+    # UPDATE MODULES
+    # ---------- X-ray source ----------
     def poll_xrs_status(self):
         # Check interlock status
         interlock = self.xrs.get_interlock_status()
@@ -359,9 +360,25 @@ class TomographyGUI(tk.Tk):
         self.btn_xon.config(state=tk.NORMAL)
         self.btn_xoff.config(state=tk.NORMAL)
 
+    # ---------- Motor ----------
+    def poll_motor_status(self):
+        positioner_status = self.motor.get_positioner_status()
+        self.motor_indicator_flags['REFERENCED'] = positioner_status.startswith('0') or positioner_status in ['0F', '10', '11']
+        self.motor_indicator_flags['READY'] = positioner_status in ['32', '33', '34', '35']
+        self.motor_indicator_flags['MOVING'] = positioner_status in ['28', '1E', '1F']
 
     def update_motor_status(self):
-        pass
+        # ---- NO MOTOR CONNECTED ----
+        if not self.motor:
+            self.btn_bk_step.config(state=tk.DISABLED)
+            self.btn_fw_step.config(state=tk.DISABLED)
+            self.position_indicator.config(text="N/A")
+            self.motor_indicators.reset()
+            return
+        # ---- MOTOR CONNECTED ----
+        self.poll_motor_status()
+        # Update indicators
+        self.motor_indicators.update()
 
     def update_camera_status(self):
         pass
@@ -410,7 +427,7 @@ class TomographyGUI(tk.Tk):
         try:
             from motor.motor_controller import MotorController
             self.motor = MotorController(dll_path=dll ,port=port, log_fn=self.log_msg)
-        except Exception as e:
+        except Execption as e:
             self.motor = None
             return e
         finally:
@@ -551,13 +568,13 @@ class TomographyGUI(tk.Tk):
         pos_frame = ttk.Frame(f)
         pos_frame.grid(row=1, column=0, pady=10)
         ttk.Label(pos_frame, text="Position (°):", foreground="blue").grid(row=0, column=0)
-        self.motor_pos_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10, font=("Arial", 14), anchor="e").grid(row=0, column=1, padx=5)
+        self.position_indicator = tk.Label(pos_frame, text="0.00", bg="black", fg="red", width=10, font=("Arial", 14), anchor="e").grid(row=0, column=1, padx=5)
 
         # Motion arrows
         move_frame = ttk.Frame(f)
         move_frame.grid(row=2, column=0, pady=5)
-        tk.Button(move_frame, text="◀", width=4).grid(row=0, column=0, padx=5)
-        tk.Button(move_frame, text="▶", width=4).grid(row=0, column=1, padx=5)
+        self.btn_bk_step = tk.Button(move_frame, text="◀", width=4).grid(row=0, column=0, padx=5)
+        self.btn_fw_step = tk.Button(move_frame, text="▶", width=4).grid(row=0, column=1, padx=5)
 
         # STEP y GO TO
         config_frame = ttk.Frame(f)
