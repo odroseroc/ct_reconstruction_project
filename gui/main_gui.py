@@ -541,7 +541,7 @@ class TomographyGUI(tk.Tk):
         self.motor_port_entry = ttk.Entry(motor_port_frame, width=10)
         self.motor_port_entry.insert(0, "COM6")
         self.motor_port_entry.grid(row=1, column=1, padx=5,sticky="w")
-        self.btn_motor_port = ttk.Button(motor_port_frame, text="Connect").grid(row=1, column=2, padx=5, sticky="w")
+        ttk.Button(motor_port_frame, text="Connect", command=self.connect_motor).grid(row=1, column=2, padx=5, sticky="w")
 
     # ============================================================
     #   Pestaña 3: Cámara y Adquisición
@@ -550,7 +550,8 @@ class TomographyGUI(tk.Tk):
         f = self.tab_camera
         f.columnconfigure(0, weight=1)
 
-        # Config cámara (mock)
+        # Camera config
+        #TODO: complete this with the appropriate gixpy modules
         cam_frame = ttk.LabelFrame(f, text="Camera Settings")
         cam_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
         for i, (label, default) in enumerate([
@@ -563,34 +564,33 @@ class TomographyGUI(tk.Tk):
             e.insert(0, default)
             e.grid(row=i, column=1, padx=5, pady=2, sticky="w")
 
-        # Botones cámara
+        # Cam buttons
         btn_frame = ttk.Frame(cam_frame)
         btn_frame.grid(row=3, column=0, columnspan=2, pady=5)
         self.btn_cam_init = ttk.Button(btn_frame, text="Init Camera").grid(row=0, column=0, padx=5)
         self.btn_start_live = ttk.Button(btn_frame, text="Start Live").grid(row=0, column=1, padx=5)
         self.btn_stop_live = ttk.Button(btn_frame, text="Stop Live").grid(row=0, column=2, padx=5)
 
-        # Config acquisition
+        # Acquisition config
         acq_frame = ttk.LabelFrame(f, text="Acquisition Settings")
         acq_frame.grid(row=2, column=0, pady=5, padx=5, sticky="ew")
-        # labels = ["Step (°)", "# Revs", "Images/Step", "Start Pos (°)", "Base Folder"]
-        # defaults = ["1", "1", "5", "0", "C:/Xray/Images"]
-        # for i, (lbl, val) in enumerate(zip(labels, defaults)):
-        #     ttk.Label(acq_frame, text=lbl).grid(row=i, column=0, sticky="e")
-        #     e = ttk.Entry(acq_frame, width=25)
-        #     e.insert(0, val)
-        #     e.grid(row=i, column=1, sticky="w", pady=2)
-        # Create entrys dinamically
+
+        # Create entries dynamically. Uses class ParamsForm defined in .widgets
         self.acq_form = ParamsForm(acq_frame, AcquisitionParams)
-        # Adjust labels
+        # Adjust entry labels
         self.acq_form.labels['step_deg'].config(text="Step (°) ")
         self.acq_form.labels['num_revs'].config(text="# Revs ")
         self.acq_form.labels['imgs_per_step'].config(text="Images / Step ")
         self.acq_form.labels['start_pos_deg'].config(text="Start Pos (°) ")
         self.acq_form.labels['base_folder'].config(text="Base Folder ")
         self.acq_form.entries['base_folder'].config(width=30)
-        ttk.Button(acq_frame, text="Browse...").grid(row=4, column=2, padx=5)
-        ttk.Button(acq_frame, text="Start", style="Accent.TButton").grid(row=5, column=1, pady=10)
+        self.btn_browse_folder = ttk.Button(acq_frame, text="Browse...")
+        self.btn_browse_folder.grid(row=4, column=2, padx=5)
+        # Start / stop acquisition buttons
+        self.btn_start_aqcisition = ttk.Button(acq_frame, text="Start Acquisition", style="Accent.TButton")
+        self.btn_start_aqcisition.grid(row=5, column=1, pady=10)
+        self.btn_stop_acquisition = ttk.Button(acq_frame, text="Stop Acquisition", style="Accent.TButton")
+        self.btn_stop_acquisition.grid(row=5, column=2, pady=10)
 
     # ============================================================
     #   Panel derecho: Live, Snapshot, Log

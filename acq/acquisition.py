@@ -5,11 +5,13 @@ import os
 import sys
 import gxipy as gx
 import time
+import numpy as np
+import tifffile as tff
 
 from dataclasses import dataclass
 from pathlib import Path
 from core.log_utils import no_op
-from acq import AcquisitionStep
+from .acqindex import AcquisitionStep, AcquisitionIndex
 
 DEGS_1REV = 360
 
@@ -25,10 +27,10 @@ class Acquisition:
     def __init__(
             self,
             name: Optional[str] = None,
-            xrs: "XRSController",
-            motor: "MotorController",
-            camera: "gxipy.Device",
-            params: AcquisitionParams,
+            xrs: "XRSController" = None,
+            motor: "MotorController" = None,
+            camera: "gxipy.Device" = None,
+            params: AcquisitionParams = None,
             log_fn = no_op,
     ):
         self.name = name
@@ -38,7 +40,15 @@ class Acquisition:
         self.params = params
         self.logger = log_fn
 
-    def write_metadata_header(self, metafile_path, metafile_params):
+        self.step_deg = self.params.step_deg
+        self.num_revs = self.params.num_revs
+        self.imgs_per_step = self.params.imgs_per_step
+        self.start_pos_deg = self.params.start_pos_deg
+        self.base_folder = Path(self.params.base_folder)
+        self.raw_folder = self.base_folder / "raw"
+        self.meta_path = self.raw_folder / "meta.txt"
+
+    def write_metadata_header(self, metafile_path, header_params):
         with open(metafile_path, "w") as metafile:
             metafile.write('='*50+"\n")
             metafile.write(f"Acquisition {self.name}\nDate: {datetime.datetime.now()}\n")
@@ -46,17 +56,17 @@ class Acquisition:
             metafile.write("---------- X-ray source parameters: ----------\n")
             metafile.write(f'{"Tube Voltage": <12}   {"Tube current": <12}   {"Focal spot mode": <15} \n')
             metafile.write('-'*47+"\n")
-            metafile.write(f'{str(metafile_params["voltage"]) + "kV": >12} {str(metafile_params["current"]) + "µA": >12} {str(metafile_params["focus"]): ^15} \n')
+            metafile.write(f'{str(header_params["voltage"]) + "kV": >12} {str(header_params["current"]) + "µA": >12} {str(header_params["focus"]): ^15} \n')
             metafile.write("---------- Camera parameters: ----------\n")
             metafile.write(f'{"Exposure time": <13}   {"Gain": <5}\n')
             metafile.write('\n')
             metafile.write('-' * 21 + "\n")
             metafile.write(
-                f'{str(metafile_params["exposure_time"]) + "s": >13}   {str(metafile_params["gain"]) + "dB": >12} \n')
+                f'{str(header_params["exposure_time"]) + "s": >13}   {str(header_params["gain"]) + "dB": >12} \n')
             metafile.write('\n')
             metafile.write("---------- Acquisition parameters: ----------\n")
-            metafile.write(f"Start position: {self.params.start_pos_deg: >7.2f} ° \n")
-            metafile.write(f"Step:           {self.params.step_deg: >7.2f} º\n")
+            metafile.write(f"Start position: {self.start_pos_deg: >7.2f} ° \n")
+            metafile.write(f"Step:           {self.step_deg: >7.2f} º\n")
             metafile.write("=============================================")
             metafile.write("#, degrees, path\n")
 
@@ -66,44 +76,65 @@ class Acquisition:
 
     def run(self = no_op):
         self.logger("Starting acquisition...")
-        base_folder = Path(self.params.base_folder)
-        raw_folder = base_folder / "raw"
-        raw_folder.mkdir(parents=True, exist_ok=True)
-        meta_path = raw_folder / "meta.txt"
+
         try:
+            acq_steps = []
             voltage = self.xrs.get_preset_voltage()
             current = self.xrs.get_preset_current()
             focus = self.xrs.get_focal_spot_mode()
             focus_modes = ["small", "medium", "large"]
             focus = focus_modes[focus]
-            self.motor.move_absolute(self.params.start_pos_deg, log_fn=self.logger)
+            self.motor.move_absolute(self.start_pos_deg, log_fn=self.logger)
             self.motor.wait(log_fn=self.logger)
             start_pos = self.motor.get_theoretical_position()
-            self.logger(f"Motor position: {start_pos}")
+            self.logger(f"Motor position: {start_pos} °")
             exposure_time = self.camera.ExposureTime.get()
             gain = self.camera.Gain.get()
-            metafile_params = {
+            meta_header_params = {
                 "voltage": voltage,
                 "current": current,
                 "focus": focus,
                 "exposure_time": exposure_time,
                 "gain": gain,
             }
-            self.write_metadata_header(meta_path, metafile_params)
-            steps_per_rev = round(DEGS_1REV / self.params.step_deg, 3)
-            current_deg = self.params.start_pos_deg
-            for rev in range(self.params.num_revs):
+            self.write_metadata_header(self.meta_path, meta_header_params)
+            steps_per_rev = round(DEGS_1REV / self.step_deg)
+            current_deg = self.start_pos_deg
+            total_steps = num_revs * steps_per_rev
+            for rev in range(self.num_revs):
                 for step in range(steps_per_rev):
-                    pass
-
-
-
-
+                    # Acquisition of image mean from self.imgs_per_step frames
+                    img_stack = [self.camera.data_stream[0].get_image(timeout=20000).get_numpy_array() for _ in range(self.imgs_per_step)]
+                    img_stack = np.stack(img_stack, axis=0)
+                    mean_img = np.mean(img_stack, axis=0).astype(img_stack.dtype)
+                    current_pos = (rev * DEGS_1REV) + self.motor.get_theoretical_position()
+                    img_fname = self.raw_folder / f"Im{step:02d}_raw.tif"
+                    tff.imwrite(img_fname, mean_img)
+                    acq_step = AcquisitionStep(angle=current_deg, filepath=img_fname)
+                    acq_steps.append(acq_step)
+                    step_nr = (step * steps_per_rev) + rev
+                    self.append_step_metadata(
+                        metafile_path=self.meta_path, acq_step,
+                        idx= step_nr,
+                        acq_step=acq_step
+                    )
+                    self.logger(f"Saved image at {img_fname}")
+                    # TODO: Find some way to update the preview in the GUI upon completion of this step
+                    self.logger(f"Step {step_nr} of {total_steps} at position {current_pos}")
+                    if step_nr < total_steps:
+                        self.motor.move_relative(self.step_deg, log_fn=self.logger)
+                        self.motor.wait(log_fn=self.logger)
+                self.logger("Acquisition complete. Returning motor to initial position...")
+                self.motor.move_absolute(self.start_pos_deg, log_fn=self.logger)
+                self.motor.wait(log_fn=self.logger)
+                self.logger(f"Acquisition finished.")
+                return AcquisitionIndex.from_list(acq_steps, self.meta_path, self.base_folder)
 
         except Exception as e:
-            self.logger("Failed to start acquisition: " + str(e))
+            self.logger("Failed to perform acquisition: " + str(e))
             self.logger("Acquisition aborted.")
-            return
+            return e
+
 
 
 

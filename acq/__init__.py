@@ -1,5 +1,9 @@
-from acq.acquisition import AcquisitionParams
-from acq.acqindex import AcquisitionIndex, AcquisitionStep
+from .acquisition import AcquisitionParams
+from .acqindex import AcquisitionIndex, AcquisitionStep
 
-__all__ = ("AcquisitionParams",)
+__all__ = (
+    "AcquisitionParams",
+    "AcquisitionIndex",
+    "AcquisitionStep",
+)
 

@@ -65,6 +65,15 @@ class AcquisitionIndex():
                         pass
         return cls(filepaths=filepaths, angles=np.array(angles), device=device, parent_dir=parent_dir, metadata_file=metadata_file)
 
+    @classmethod
+    def from_list(cls, acq_steps, meta_file, parent_dir, device="DahengCam"):
+        angles = []
+        filepaths = []
+        for step in acq_steps:
+            angles.append(step.angle)
+            filepaths.append(step.filepath)
+        return cls(filepaths=filepaths, angles=np.array(angles), parent_dir, meta_file, device=device)
+
     def __getitem__(self, index: int):
         if isinstance(index, slice):
             return AcquisitionIndex(
