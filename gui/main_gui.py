@@ -55,7 +55,8 @@ class TomographyGUI(tk.Tk):
             'ERROR': True,  # True if there is NO error
             }
         self.xrs_emitting_flag = False
-
+        self.xrs_warmup_started = False
+        # --- Motor ---
         self.motor_indicator_flags = {
             'REFERENCED': False, # True if motor is referenced
             'READY': False, # True if motor is ready for motion
@@ -205,6 +206,10 @@ class TomographyGUI(tk.Tk):
                 self.xrs_indicator_flags['PREHEAT'] = True
                 self.xrs_indicator_flags['ERROR'] = True
                 self.xrs_emitting_flag = False
+                if self.xrs_warmup_started:
+                    self.log_msg("X-Ray source warmup complete.")
+                    self.xrs_warmup_started = False
+                    self.xrs.set_emission_mode(mode=3) # Set to continuous mode after warmup
             case "STS 3":  # Emitting X-rays
                 self.xrs_indicator_flags['X_RAY'] = False
                 self.xrs_indicator_flags['WARMUP'] = True
@@ -298,6 +303,23 @@ class TomographyGUI(tk.Tk):
         self.poll_motor_status()
         # Update indicators
         self.motor_indicators.update()
+        if self.motor_indicator_flags["READY"]:
+            self.btn_bk_step.config(state=tk.NORMAL)
+            self.btn_fw_step.config(state=tk.NORMAL)
+            self.btn_motor_go.config(state=tk.NORMAL)
+        if not self.motor_indicator_flags["MOVING"]:
+            self.motor_indicators.blink("MOVING")
+            self.btn_bk_step.config(state=tk.DISABLED)
+            self.btn_fw_step.config(state=tk.DISABLED)
+            self.btn_motor_go.config(state=tk.DISABLED)
+        else:
+            self.motor_indicators.stop_blink("MOVING")
+        # Update position indicator
+        try:
+            position = self.motor.get_theoretical_position()
+        except Exception:
+            return
+        self.position_indicator.config(text=f"{position:.2f}")
 
 
     def update_camera_status(self):
@@ -372,6 +394,7 @@ class TomographyGUI(tk.Tk):
             case "STS 0":
                 self.xrs.start_warmup()
                 self.log_msg("X-Ray source warming up...")
+                self.xrs_warmup_started = True
             case "STS 2":
                 self.xrs.xon()
                 self.log_msg("X-Ray source turned ON.")
@@ -397,7 +420,26 @@ class TomographyGUI(tk.Tk):
         if e:
             tk.messagebox.showerror(title="Motor init error",
                                     message=f"Failed to initialize rotating stage:\n {e}")
+            
+    def move_motor_step(self, direction: int):
+        ''' Move motor one step in given direction (+1 or -1) '''
+        if not self.motor:
+            return
+        current_pos = self.motor.get_theoretical_position()
+        step_size = float(self.motor_step_entry.get())
+        dist = direction * step_size
+        target_pos = current_pos + dist
+        self.motor.move_absolute(target_pos)
 
+    def goto_motor(self):
+        ''' Move motor to given absolute position '''
+        if not self.motor:
+            return
+        target_pos = float(self.motor_goto_entry.get())
+        target_pos = abs(target_pos) % 360  # Wrap around 360 degrees
+        self.motor_goto_entry.delete(0, tk.END)
+        self.motor_goto_entry.insert(0, str(target_pos))
+        self.motor.move_absolute(target_pos)
 
 
     # ---- Close ----
@@ -499,9 +541,9 @@ class TomographyGUI(tk.Tk):
         # Motion arrows
         move_frame = ttk.Frame(f)
         move_frame.grid(row=2, column=0, pady=5)
-        self.btn_bk_step = tk.Button(move_frame, text="◀", width=4)
+        self.btn_bk_step = tk.Button(move_frame, text="◀", width=4, command=lambda: self.move_motor_step(direction=-1))
         self.btn_bk_step.grid(row=0, column=0, padx=5)
-        self.btn_fw_step = tk.Button(move_frame, text="▶", width=4)
+        self.btn_fw_step = tk.Button(move_frame, text="▶", width=4, command=lambda: self.move_motor_step(direction=1))
         self.btn_fw_step.grid(row=0, column=1, padx=5)
 
         # STEP y GO TO
@@ -509,11 +551,13 @@ class TomographyGUI(tk.Tk):
         config_frame.grid(row=3, column=0, pady=10)
         ttk.Label(config_frame, text="STEP (°):").grid(row=0, column=0)
         self.motor_step_entry = ttk.Entry(config_frame, width=8)
+        self.motor_step_entry.insert(0, "1.0")
         self.motor_step_entry.grid(row=0, column=1, padx=5)
         ttk.Label(config_frame, text="GO TO (°):").grid(row=1, column=0)
         self.motor_goto_entry = ttk.Entry(config_frame, width=8)
+        self.motor_goto_entry.insert(0, "0.0")
         self.motor_goto_entry.grid(row=1, column=1, padx=5)
-        self.btn_motor_go = ttk.Button(config_frame, text="GO")
+        self.btn_motor_go = ttk.Button(config_frame, text="GO", command=self.goto_motor)
         self.btn_motor_go.grid(row=1, column=2, padx=5)
 
         # ---- Motor indicators ----

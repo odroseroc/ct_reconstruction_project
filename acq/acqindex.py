@@ -72,7 +72,7 @@ class AcquisitionIndex():
         for step in acq_steps:
             angles.append(step.angle)
             filepaths.append(step.filepath)
-        return cls(filepaths=filepaths, angles=np.array(angles), parent_dir, meta_file, device=device)
+        return cls(filepaths=filepaths, angles=np.array(angles), parent_dir=parent_dir, meta_file=meta_file, device=device)
 
     def __getitem__(self, index: int):
         if isinstance(index, slice):

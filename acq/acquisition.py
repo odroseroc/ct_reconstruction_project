@@ -114,7 +114,7 @@ class Acquisition:
                     acq_steps.append(acq_step)
                     step_nr = (step * steps_per_rev) + rev
                     self.append_step_metadata(
-                        metafile_path=self.meta_path, acq_step,
+                        metafile_path=self.meta_path,
                         idx= step_nr,
                         acq_step=acq_step
                     )
