@@ -1,4 +1,4 @@
-from .acquisition import AcquisitionParams
+from .acquisition import AcquisitionParams, Acquisition
 from .acqindex import AcquisitionIndex, AcquisitionStep
 
 __all__ = (

@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from gui.widgets import StatusIndicators, ParamsForm
 from core.log_utils import no_op
-from acq import AcquisitionParams
+from acq import AcquisitionParams, Acquisition, AcquisitionIndex, AcquisitionStep
 # Imports handled by lazy import in development phase
 # from motor import MotorController
 # from xrsource import XRSController
@@ -62,6 +62,8 @@ class TomographyGUI(tk.Tk):
             'READY': False, # True if motor is ready for motion
             'MOVING': False, # True if motor is NOT moving
             }
+        # ---- Acquisition ----
+        self.acquisition_running = False
         
         ########## Values dicts ##########
         self.xrs_values = {'volt': 0,
@@ -143,7 +145,7 @@ class TomographyGUI(tk.Tk):
         self.init_xrs()
         self.init_motor()
 
-        self.after(200, self.update_status_loop)
+        self.after(UPDATE_INTERVAL_MS, self.update_status_loop)
         # self.after(2000, self.debug_all)
 
     # --End __init__
@@ -283,12 +285,20 @@ class TomographyGUI(tk.Tk):
 
         self.btn_xon.config(state=tk.NORMAL)
         self.btn_xoff.config(state=tk.NORMAL)
+        if self.acquisition_running:
+            self.volt_entry.config(state=tk.DISABLED)
+            self.curr_entry.config(state=tk.DISABLED)
+            if not self.xrs_emitting_flag:
+                tk.messagebox.showwarning("Acquisition sequence warning", "X-Ray source has been turned off while running an acquisition.")
+        else:
+            self.volt_entry.config(state=tk.NORMAL)
+            self.curr_entry.config(state=tk.NORMAL)
 
     # ---------- Motor ----------
     def poll_motor_status(self):
         positioner_status = self.motor.get_positioner_status()
         self.motor_indicator_flags['REFERENCED'] = not(positioner_status.startswith('0') or positioner_status in ['0F', '10', '11'])
-        self.motor_indicator_flags['READY'] = positioner_status in ['32', '33', '34', '35']
+        self.motor_indicator_flags['READY'] = positioner_status in ['32', '33', '34', '35'] and not self.acquisition_running
         self.motor_indicator_flags['MOVING'] = not(positioner_status in ['28', '1E', '1F']) # Indicator is green (True) if NOT moving
 
     def update_motor_status(self):
@@ -303,7 +313,11 @@ class TomographyGUI(tk.Tk):
         self.poll_motor_status()
         # Update indicators
         self.motor_indicators.update()
-        if self.motor_indicator_flags["READY"]:
+        if not self.motor_indicator_flags["READY"]:
+            self.btn_bk_step.config(state=tk.DISABLED)
+            self.btn_fw_step.config(state=tk.DISABLED)
+            self.btn_motor_go.config(state=tk.DISABLED)
+        else:
             self.btn_bk_step.config(state=tk.NORMAL)
             self.btn_fw_step.config(state=tk.NORMAL)
             self.btn_motor_go.config(state=tk.NORMAL)
@@ -333,6 +347,10 @@ class TomographyGUI(tk.Tk):
         self.log.insert(tk.END, f"{time.strftime('%H:%M:%S')} - {msg}\n")
         self.log.see(tk.END)
         self.log.config(state='disabled')
+
+    def thread_sage_log(self, msg):
+        "Allows the acquisition sequence to write logs in the GUI from a separate thread."
+        self.window.after(0, self.log_msg, msg)
 
     # ==============================================================
     #    Devices initializers
@@ -440,6 +458,44 @@ class TomographyGUI(tk.Tk):
         self.motor_goto_entry.delete(0, tk.END)
         self.motor_goto_entry.insert(0, str(target_pos))
         self.motor.move_absolute(target_pos)
+
+    # ---- Acquisition ----
+    def run_acquisition(self):
+        '''Perform acquisition sequence with the specified parameters.'''
+        self.acquisition_running = True
+        acq_params = self.acq_form.get_params()
+        acq_name = "my_acquisition"
+        self.acq = Acquisition(
+            name = acq_name,
+            xrs = self.xrs,
+            motor = self.motor,
+            camera = self.camera,
+            params = acq_params,
+            log_fn = self.thread_safe_log,
+        )
+
+        # Launch aqucisition in a thread
+        self.thread = threading.Thread(
+            target = self._run_acquisition_thread,
+            daemon = True
+        )
+        self.thread.start()
+
+        self.log_msg("---- Acquisition thread started. ----")
+
+    def _run_acquisition_thread(self):
+        result = self.acq.run() # Will be executed in the background from self.run_acquisition
+
+        # Notify Tkinter thread upon finishing acquisition
+        def finish_callback():
+            self.acquisition_running = False
+            if isinstance(result, Exception):
+                self.log_msg(f"[Acquisition] Acquisition failed. {type(result).__name__}: {result}")
+            else:
+                self.log_msg(f"---- Acquisition complete. ----")
+                self.log_msg(f"Raw images saved at {result.meta_path}")
+
+            self.window.after(0, finish_callback)
 
 
     # ---- Close ----

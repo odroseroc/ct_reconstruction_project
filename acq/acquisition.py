@@ -75,7 +75,7 @@ class Acquisition:
             metafile.write(f"{idx}, {acq_step.angle}, {acq_step.filepath}\n")
 
     def run(self = no_op):
-        self.logger("Starting acquisition...")
+        self.logger("[Acquisition] Starting acquisition...")
 
         try:
             acq_steps = []
@@ -87,7 +87,7 @@ class Acquisition:
             self.motor.move_absolute(self.start_pos_deg, log_fn=self.logger)
             self.motor.wait(log_fn=self.logger)
             start_pos = self.motor.get_theoretical_position()
-            self.logger(f"Motor position: {start_pos} °")
+            self.logger(f"[Acquisition] Motor position: {start_pos} °")
             exposure_time = self.camera.ExposureTime.get()
             gain = self.camera.Gain.get()
             meta_header_params = {
@@ -108,7 +108,7 @@ class Acquisition:
                     img_stack = np.stack(img_stack, axis=0)
                     mean_img = np.mean(img_stack, axis=0).astype(img_stack.dtype)
                     current_pos = (rev * DEGS_1REV) + self.motor.get_theoretical_position()
-                    img_fname = self.raw_folder / f"Im{step:02d}_raw.tif"
+                    img_fname = self.raw_folder / f"Im_raw{step:03d}.tif"
                     tff.imwrite(img_fname, mean_img)
                     acq_step = AcquisitionStep(angle=current_deg, filepath=img_fname)
                     acq_steps.append(acq_step)
@@ -118,21 +118,21 @@ class Acquisition:
                         idx= step_nr,
                         acq_step=acq_step
                     )
-                    self.logger(f"Saved image at {img_fname}")
+                    self.logger(f"[Acquisition] Saved image at {img_fname}")
                     # TODO: Find some way to update the preview in the GUI upon completion of this step
-                    self.logger(f"Step {step_nr} of {total_steps} at position {current_pos}")
+                    self.logger(f"[Acquisition] Step {step_nr} of {total_steps} at position {current_pos}")
                     if step_nr < total_steps:
                         self.motor.move_relative(self.step_deg, log_fn=self.logger)
                         self.motor.wait(log_fn=self.logger)
-                self.logger("Acquisition complete. Returning motor to initial position...")
+                self.logger("[Acquisition] Acquisition complete. Returning motor to initial position...")
                 self.motor.move_absolute(self.start_pos_deg, log_fn=self.logger)
                 self.motor.wait(log_fn=self.logger)
-                self.logger(f"Acquisition finished.")
+                self.logger(f"[Acquisition] Acquisition finished.")
                 return AcquisitionIndex.from_list(acq_steps, self.meta_path, self.base_folder)
 
         except Exception as e:
-            self.logger("Failed to perform acquisition: " + str(e))
-            self.logger("Acquisition aborted.")
+            # self.logger("[Acquisition] Failed to perform acquisition: " + str(e))
+            # self.logger("[Acquisition] Acquisition aborted.")
             return e
 
 
