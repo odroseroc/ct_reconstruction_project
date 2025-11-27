@@ -17,6 +17,7 @@ DEGS_1REV = 360
 
 @dataclass
 class AcquisitionParams:
+    name: str = "new_acquisition"
     step_deg: float = 1
     num_revs: int = 1
     imgs_per_step: int = 5
@@ -26,20 +27,21 @@ class AcquisitionParams:
 class Acquisition:
     def __init__(
             self,
-            name: Optional[str] = None,
             xrs: "XRSController" = None,
             motor: "MotorController" = None,
             camera: "gxipy.Device" = None,
             params: AcquisitionParams = None,
             log_fn = no_op,
+            on_step_completed = None,
     ):
-        self.name = name
         self.xrs = xrs
         self.motor = motor
         self.camera = camera
         self.params = params
         self.logger = log_fn
+        self.on_step_completed = on_step_completed
 
+        self.name = self.params.name
         self.step_deg = self.params.step_deg
         self.num_revs = self.params.num_revs
         self.imgs_per_step = self.params.imgs_per_step
@@ -119,7 +121,12 @@ class Acquisition:
                         acq_step=acq_step
                     )
                     self.logger(f"[Acquisition] Saved image at {img_fname}")
-                    # TODO: Find some way to update the preview in the GUI upon completion of this step
+                    # If implemented, send callback to GUI to update visualization
+                    if self.on_step_completed:
+                        try:
+                            self.on_step_completed(mean_img)
+                        except:
+                            pass
                     self.logger(f"[Acquisition] Step {step_nr} of {total_steps} at position {current_pos}")
                     if step_nr < total_steps:
                         self.motor.move_relative(self.step_deg, log_fn=self.logger)

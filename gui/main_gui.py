@@ -3,11 +3,11 @@ from tkinter import ttk
 from tkinter import scrolledtext
 from unittest import case
 
-from PIL import Image, ImageTk
 import numpy as np
 import threading
 import time
 from PIL import Image, ImageTk
+import tifffile as tff
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -31,15 +31,12 @@ UPDATE_INTERVAL_MS = 200  # Interval to update status
 class TomographyGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Tomography Control Panel (Mock GUI)")
+        self.title("Tomography Control Panel")
         self.geometry("1500x900")
         self.configure(bg="#e0e0e0")
         self.master_tick = [0] # Global tick for blinking indicators. Must be a mutable type to be parsed by reference.
 
-        # X-ray source state (global)
-        self.rx_on = False
-
-        # --- General laout ---
+        # --- General layout ---
         self.columnconfigure(0, minsize=350, weight=1)
         self.columnconfigure(1, weight=10)
         self.rowconfigure(0, weight=1)
@@ -62,6 +59,8 @@ class TomographyGUI(tk.Tk):
             'READY': False, # True if motor is ready for motion
             'MOVING': False, # True if motor is NOT moving
             }
+        # ---- Camera ----
+        self.streaming = False
         # ---- Acquisition ----
         self.acquisition_running = False
         
@@ -337,7 +336,22 @@ class TomographyGUI(tk.Tk):
 
 
     def update_camera_status(self):
-        pass
+        # ---- NO CAM FOUND ----
+        if not self.cam:
+            self.btn_cam_apply.config(state=tk.DISABLED)
+            self.btn_start_live.config(state=tk.DISABLED)
+            self.btn_stop_live.config(state=tk.DISABLED)
+            self.btn_cam_close.config(state=tk.DISABLED)
+            return
+        # ---- CAM FOUND ----
+        self.btn_cam_apply.config(state=tk.NORMAL)
+        self.btn_cam_close.config(state=tk.NORMAL)
+        if self.streaming:
+            self.btn_start_live.config(state=tk.DISABLED)
+            self.btn_stop_live.config(state=tk.NORMAL)
+        else:
+            self.btn_start_live.config(state=tk.NORMAL)
+            self.btn_stop_live.config(state=tk.DISABLED)
 
     # ==============================================================
     #    Loger
@@ -348,9 +362,9 @@ class TomographyGUI(tk.Tk):
         self.log.see(tk.END)
         self.log.config(state='disabled')
 
-    def thread_sage_log(self, msg):
+    def thread_safe_log(self, msg):
         "Allows the acquisition sequence to write logs in the GUI from a separate thread."
-        self.window.after(0, self.log_msg, msg)
+        self.after(0, self.log_msg, msg)
 
     # ==============================================================
     #    Devices initializers
@@ -399,6 +413,27 @@ class TomographyGUI(tk.Tk):
                 self.motor.show_positioner_status(statusCode=status, log_fn=self.log_msg)
                 self.log_msg("------------------------------------")
 
+
+    def init_camera(self):
+        try:
+            if not self.cam_devmgr:
+                import gxipy as gx
+                self.cam_devmgr = gx.DeviceManager()
+                num, _ =  self.cam_devmgr.update_device_list()
+                if num == 0: raise RuntimeError("No camera found.")
+        except Exception as e:
+                self.cam_devmgr = None
+                return e
+        finally:
+            if self.cam_devmgr:
+                self.cam = self.cam_devmgr.open_device_by_index(1)
+                self.cam.RemoveParameterLimit.set(1)
+                self.cam.TriggerMode.set(gx.GxSwitchEntry.OFF)
+                self.cam.PixelFormat.set(gx.GxPixelFormatEntry.MONO12)
+                self.apply_cam_settings()
+                self.cam.stream_on()
+                self.log_msg(f"Camera initialized")
+
     # ==============================================================
     #    Proxy functions
     # ==============================================================
@@ -416,7 +451,7 @@ class TomographyGUI(tk.Tk):
             case "STS 2":
                 self.xrs.xon()
                 self.log_msg("X-Ray source turned ON.")
-                time.sleep(0.5)  # Small delay to allow status update
+                # time.sleep(0.5)  # Small delay to allow status update
             case _:
                 pass
 
@@ -459,22 +494,50 @@ class TomographyGUI(tk.Tk):
         self.motor_goto_entry.insert(0, str(target_pos))
         self.motor.move_absolute(target_pos)
 
-    # ---- Acquisition ----
+    # ---- Camera ----
+
+    def apply_cam_settings(self):
+        exposure = float(self.exposure_entry.get())
+        gain = float(self.gain_entry.get())
+        self.cam.ExposureTime.set(int(exposure*1e6))
+        self.cam.Gain.set(gain)
+        self.log_msg(f"Aplied camera settings: {exposure=}, {gain=}")
+
+    def connect_cam(self):
+        e = self.init_camera()
+        if e:
+            tk.messagebox.showerror(title="Camera init error",
+                                    message=f"Failed to initialize camera:\n {e}")
+
+    def disable_cam(self):
+        self.stop_stream()
+        try:
+            self.cam.stream_off()
+            self.cam.close_device()
+        except: pass
+        self.cam = None
+        self.log_msg("Camera disabled.")
+
+    # ==============================================================
+    #    Acquisition
+    # ==============================================================
     def run_acquisition(self):
         '''Perform acquisition sequence with the specified parameters.'''
+        if not (self.xrs and self.motor and self.cam):
+            tk.messagebox.showwarning(title="Not ready", message="Initialize all devices before starting acquisition.")
+            return
         self.acquisition_running = True
         acq_params = self.acq_form.get_params()
-        acq_name = "my_acquisition"
         self.acq = Acquisition(
-            name = acq_name,
             xrs = self.xrs,
             motor = self.motor,
             camera = self.camera,
             params = acq_params,
             log_fn = self.thread_safe_log,
+            on_step_completed = self.thread_safe_update_preview,
         )
 
-        # Launch aqucisition in a thread
+        # Launch acquisition in a thread
         self.thread = threading.Thread(
             target = self._run_acquisition_thread,
             daemon = True
@@ -495,7 +558,49 @@ class TomographyGUI(tk.Tk):
                 self.log_msg(f"---- Acquisition complete. ----")
                 self.log_msg(f"Raw images saved at {result.meta_path}")
 
-            self.window.after(0, finish_callback)
+            self.after(0, finish_callback)
+
+    # ==============================================================
+    #    Preview
+    # ==============================================================
+
+    def update_preview(self, img):
+        try:
+            if img.dtype != 'uint16': img = img.astype('uint16')
+            self.snap_im.set_data(img)
+            self.snap_im.set_clim(0, 4096)
+            self.canvas.draw_idle()
+        except Exception as e:
+            self.log_msg(f"Snapshot preview failed: {e}")
+
+    def thread_safe_update_preview(self, img):
+        self.after(0, self.update_preview, img)
+
+    def start_stream(self):
+        if not self.cam or self.streaming:
+            return
+        self.cam.stream_on()
+        self.streaming = True
+        threading.Thread(target=self._live_stream, daemon=True).start()
+    
+    def _live_stream(self):
+        while self.streaming:
+            try:
+                img = self.cam.stream[0].get_image(timeout=10000)
+                arr = img.get_numpy_array()
+                if arr.dtype=='uint16': arr=(arr>>4).astype('uint8')
+                elif arr.dtype!='uint8': arr=arr.astype('uint8')
+                pil_img = Image.fromarray(arr).convert('RGB')
+                pil_img.thumbnail((540,405))
+                self.live_image = ImageTk.PhotoImage(pil_img)
+                self.live_label.after(0, lambda img=self.live_image: self.live_label.config(image=img))
+            except Exception as e:
+                self.log_msg(f"Live stream failed. {type(e).__name__}: {e}")
+                break
+            
+    def stop_stream(self):
+        self.streaming = False
+
 
 
     # ---- Close ----
@@ -504,7 +609,8 @@ class TomographyGUI(tk.Tk):
             self.xrs.close()
         if self.motor:
             self.motor.close()
-        self.root.destroy()
+        self.destroy()
+
 
     ########## WINDOW ##########
     # =============================================================================================
@@ -654,22 +760,37 @@ class TomographyGUI(tk.Tk):
         #TODO: complete this with the appropriate gixpy modules
         cam_frame = ttk.LabelFrame(f, text="Camera Settings")
         cam_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
-        for i, (label, default) in enumerate([
-            ("Exposure (s)", "0.1"),
-            ("Gain", "0"),
-            ("Pixel Size (µm)", "3"),
-        ]):
-            ttk.Label(cam_frame, text=label).grid(row=i, column=0, sticky="e")
-            e = ttk.Entry(cam_frame)
-            e.insert(0, default)
-            e.grid(row=i, column=1, padx=5, pady=2, sticky="w")
+        # Exposure and gain
+        ttk.Label(cam_frame, text="Exposure (s)").grid(row=0, column=0, sticky="e")
+        self.exposure_entry = ttk.Entry(cam_frame)
+        self.exposure_entry.insert(0, 0.1)
+        self.exposure_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        ttk.Label(cam_frame, text="Gain").grid(row=1, column=0, sticky="e")
+        self.gain_entry = ttk.Entry(cam_frame)
+        self.gain_entry.insert(0, 0)
+        self.gain_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
+        # for i, (label, default) in enumerate([
+        #     ("Exposure (s)", "0.1"),
+        #     ("Gain", "0"),
+        # ]):
+        #     ttk.Label(cam_frame, text=label).grid(row=i, column=0, sticky="e")
+        #     e = ttk.Entry(cam_frame)
+        #     e.insert(0, default)
+        #     e.grid(row=i, column=1, padx=5, pady=2, sticky="w")
 
         # Cam buttons
         btn_frame = ttk.Frame(cam_frame)
         btn_frame.grid(row=3, column=0, columnspan=2, pady=5)
-        self.btn_cam_init = ttk.Button(btn_frame, text="Init Camera").grid(row=0, column=0, padx=5)
-        self.btn_start_live = ttk.Button(btn_frame, text="Start Live").grid(row=0, column=1, padx=5)
-        self.btn_stop_live = ttk.Button(btn_frame, text="Stop Live").grid(row=0, column=2, padx=5)
+        self.btn_cam_init = ttk.Button(btn_frame, text="Init Camera", command=self.connect_cam)
+        self.btn_cam_init.grid(row=0, column=0, padx=5)
+        self.btn_cam_apply = ttk.Button(btn_frame, text="Apply settings", command=self.apply_cam_settings)
+        self.btn_cam_apply.grid(row=0, column=1, padx=5)
+        self.btn_start_live = ttk.Button(btn_frame, text="Start Live", command=self.start_stream)
+        self.btn_start_live.grid(row=0, column=2, padx=5)
+        self.btn_stop_live = ttk.Button(btn_frame, text="Stop Live", command=self.stop_stream)
+        self.btn_stop_live.grid(row=0, column=3, padx=5)
+        self.btn_cam_close = ttk.Button(btn_frame, text="Disable Camera", command=self.disable_cam)
+        self.btn_cam_close.grid(row=0, column=4, padx=5)
 
         # Acquisition config
         acq_frame = ttk.LabelFrame(f, text="Acquisition Settings")
@@ -678,6 +799,7 @@ class TomographyGUI(tk.Tk):
         # Create entries dynamically. Uses class ParamsForm defined in .widgets
         self.acq_form = ParamsForm(acq_frame, AcquisitionParams)
         # Adjust entry labels
+        self.acq_form.labels['name'].config(text="Name ")
         self.acq_form.labels['step_deg'].config(text="Step (°) ")
         self.acq_form.labels['num_revs'].config(text="# Revs ")
         self.acq_form.labels['imgs_per_step'].config(text="Images / Step ")
@@ -685,12 +807,12 @@ class TomographyGUI(tk.Tk):
         self.acq_form.labels['base_folder'].config(text="Base Folder ")
         self.acq_form.entries['base_folder'].config(width=30)
         self.btn_browse_folder = ttk.Button(acq_frame, text="Browse...")
-        self.btn_browse_folder.grid(row=4, column=2, padx=5)
+        self.btn_browse_folder.grid(row=5, column=2, padx=5)
         # Start / stop acquisition buttons
         self.btn_start_aqcisition = ttk.Button(acq_frame, text="Start Acquisition", style="Accent.TButton")
-        self.btn_start_aqcisition.grid(row=5, column=1, pady=10)
+        self.btn_start_aqcisition.grid(row=6, column=1, pady=10)
         self.btn_stop_acquisition = ttk.Button(acq_frame, text="Stop Acquisition", style="Accent.TButton")
-        self.btn_stop_acquisition.grid(row=5, column=2, pady=10)
+        self.btn_stop_acquisition.grid(row=6, column=2, pady=10)
 
     # ============================================================
     #   Panel derecho: Live, Snapshot, Log
@@ -711,12 +833,6 @@ class TomographyGUI(tk.Tk):
         widget = self.canvas.get_tk_widget()
         widget.config(width=540, height=405)
         widget.pack()
-
-        # log_frame = ttk.LabelFrame(parent, text="Log")
-        # log_frame.grid(row=2, column=0, sticky="nsew", pady=5)
-        # self.log = scrolledtext.ScrolledText(log_frame, state="normal", height=10)
-        # self.log.pack(expand=True, fill="both")
-
 
 
 if __name__ == "__main__":
