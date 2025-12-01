@@ -62,6 +62,7 @@ class TomographyGUI(tk.Tk):
         self.streaming = False
         # ---- Acquisition ----
         self.acquisition_running = False
+        self.acq_no_xrs_counter = 0
         
         ########## Values dicts ##########
         self.xrs_values = {'volt': 0,
@@ -292,8 +293,11 @@ class TomographyGUI(tk.Tk):
         if self.acquisition_running:
             self.volt_entry.config(state=tk.DISABLED)
             self.curr_entry.config(state=tk.DISABLED)
-            if not self.xrs_emitting_flag:
+            if not self.xrs_emitting_flag and self.acq_no_xrs_counter == 0:
                 tk.messagebox.showwarning("Acquisition sequence warning", "X-Ray source has been turned off while running an acquisition.")
+                self.acq_no_xrs_counter = (self.acq_no_xrs_counter + 1) % 30 # Show warning every 30 ticks
+            else:
+                self.acq_no_xrs_counter = 0
         else:
             self.volt_entry.config(state=tk.NORMAL)
             self.curr_entry.config(state=tk.NORMAL)
