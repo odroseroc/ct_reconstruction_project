@@ -37,7 +37,7 @@ class MotorController:
         "32": "32: READY from HOMING.",
         "33": "33: READY from MOVING.",
         "34": "34: READY from DISABLE.",
-        "35": "32: READY from JOGGING.",
+        "35": "35: READY from JOGGING.",
         "3C": "3C: DISABLE from READY.",
         "3D": "3D: DISABLE from MOVING.",
         "3E": "3E: DISABLE from JOGGING.",
@@ -139,11 +139,11 @@ class MotorController:
         return self.execute('TH')
 
     def move_absolute(self, target_pos, log_fn=no_op) -> None:
-        self.execute('PA_Set', abs(target_pos))
+        self.execute('PA_Set', float(target_pos))
         log_fn(f"Moving to absolute position: {target_pos}")
 
     def move_relative(self, dist, log_fn=no_op) -> None:
-        self.execute('PR_Set', abs(dist))
+        self.execute('PR_Set', float(abs(dist)))
         log_fn(f"Moving a distance: {dist}")
 
     def get_target_position(self) -> float:

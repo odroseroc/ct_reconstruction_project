@@ -3,6 +3,7 @@ import tifffile as tfff
 import matplotlib.pyplot as plt
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import collections
+import re
 
 # from imaging.img_utils import resolve_input_images
 from recon import Sinogram, Projection
@@ -72,7 +73,53 @@ class AcquisitionIndex():
         for step in acq_steps:
             angles.append(step.angle)
             filepaths.append(step.filepath)
-        return cls(filepaths=filepaths, angles=np.array(angles), parent_dir=parent_dir, meta_file=meta_file, device=device)
+        return cls(filepaths=filepaths, angles=np.array(angles), parent_dir=parent_dir, metadata_file=meta_file, device=device)
+    
+    @classmethod
+    def from_folder(cls, folder, step: float, device="DahengCam"):
+        """
+        Create an AcquisitionIndex from a folder containing TIF images whose filenames
+        end with an integer (e.g. img_001.tif, proj01.tif, scan1.tif).
+
+        Parameters
+        ----------
+        folder : str or Path
+            Directory containing the TIF images.
+        step : float
+            Angular step between projections (angle = number_in_name * step)
+        device : str
+            Camera/device name (default: 'DahengCam')
+
+        Returns
+        -------
+        AcquisitionIndex
+        """
+        folder = Path(folder)
+
+        # Regex: capture number at the end of the filename before .tif
+        number_regex = re.compile(r"(\d+)(?=\.[Tt][Ii][Ff])")
+
+        filepaths = []
+        angles = []
+
+        for tif_path in sorted(folder.glob("*.tif")):
+            m = number_regex.search(tif_path.name)
+            if not m:
+                continue  # skip if no number found
+
+            n = int(m.group(1))  # extract number at end
+            angle = n * step
+
+            filepaths.append(tif_path)
+            angles.append(angle)
+
+        return cls(
+            filepaths=filepaths,
+            angles=np.array(angles, dtype=float),
+            device=device,
+            parent_dir=folder,
+            metadata_file=None
+        )
 
     def __getitem__(self, index: int):
         if isinstance(index, slice):

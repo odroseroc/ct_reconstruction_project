@@ -7,6 +7,7 @@ import threading
 import time
 from PIL import Image, ImageTk
 import tifffile as tff
+from pathlib import Path
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -253,10 +254,12 @@ class TomographyGUI(tk.Tk):
             self.xrs_indicators.stop_blink("WARMUP")
         # Handle emitting indicators
         if self.xrs_emitting_flag:
+            self.btn_xon.config(state=tk.DISABLED)
             self.xrs_emitting_indicator.config(text="X-Ray ON", bg="red")
             self.blink_emitting_indicator()
             self.xrs_indicators.blink("X_RAY")
         else:
+            self.btn_xon.config(state=tk.NORMAL)
             self.xrs_emitting_indicator.config(text="X-Ray OFF", bg="gray20")
             self.xrs_indicators.stop_blink("X_RAY")
         # Update voltage, current and focus settings
@@ -293,11 +296,11 @@ class TomographyGUI(tk.Tk):
         if self.acquisition_running:
             self.volt_entry.config(state=tk.DISABLED)
             self.curr_entry.config(state=tk.DISABLED)
-            if not self.xrs_emitting_flag and self.acq_no_xrs_counter == 0:
-                tk.messagebox.showwarning("Acquisition sequence warning", "X-Ray source has been turned off while running an acquisition.")
-                self.acq_no_xrs_counter = (self.acq_no_xrs_counter + 1) % 30 # Show warning every 30 ticks
-            else:
-                self.acq_no_xrs_counter = 0
+            # if not self.xrs_emitting_flag and self.acq_no_xrs_counter == 0:
+            #     tk.messagebox.showwarning("Acquisition sequence warning", "X-Ray source has been turned off while running an acquisition.")
+            #     self.acq_no_xrs_counter = (self.acq_no_xrs_counter + 1) % 80 # Show warning every 80 ticks
+            # else:
+            #     self.acq_no_xrs_counter = 0
         else:
             self.volt_entry.config(state=tk.NORMAL)
             self.curr_entry.config(state=tk.NORMAL)
@@ -470,7 +473,6 @@ class TomographyGUI(tk.Tk):
             case "STS 2":
                 self.xrs.xon()
                 self.log_msg("X-Ray source turned ON.")
-                # time.sleep(0.5)  # Small delay to allow status update
             case _:
                 pass
 
@@ -499,6 +501,9 @@ class TomographyGUI(tk.Tk):
             return
         current_pos = self.motor.get_theoretical_position()
         step_size = float(self.motor_step_entry.get())
+        step_size = self.wrap_inclusive_0_180(step_size)
+        self.motor_step_entry.delete(0, tk.END)
+        self.motor_step_entry.insert(0, str(step_size))
         dist = direction * step_size
         target_pos = current_pos + dist
         self.motor.move_absolute(target_pos)
@@ -508,10 +513,27 @@ class TomographyGUI(tk.Tk):
         if not self.motor:
             return
         target_pos = float(self.motor_goto_entry.get())
-        target_pos = abs(target_pos) % 360  # Wrap around 360 degrees
+        target_pos = self.wrap_minus180_180_inclusive(target_pos)
         self.motor_goto_entry.delete(0, tk.END)
         self.motor_goto_entry.insert(0, str(target_pos))
         self.motor.move_absolute(target_pos)
+    
+    # Function to wrap values to the default limits of the motor
+    @staticmethod
+    def wrap_minus180_180_inclusive(x):
+        ''' Wrap angle x to the range (-180, 180]. '''
+        v = ((x + 180) % 360) - 180
+        if v == -180:
+            return 180
+        return v
+    
+    @staticmethod
+    def wrap_inclusive_0_180(x):
+        value = abs(x) % 180
+        # If value is 0 but x was a multiple of 180, return 180 instead of 0.
+        if value == 0 and x != 0:
+            return 180
+        return value
 
     # ---- Camera ----
 
@@ -546,38 +568,49 @@ class TomographyGUI(tk.Tk):
             tk.messagebox.showwarning(title="Not ready", message="Initialize all devices before starting acquisition.")
             return
         self.acquisition_running = True
-        acq_params = self.acq_form.get_params()
-        self.acq = Acquisition(
-            xrs = self.xrs,
-            motor = self.motor,
-            camera = self.camera,
-            params = acq_params,
-            log_fn = self.thread_safe_log,
-            on_step_completed = self.thread_safe_update_preview,
-        )
+        try:
+            acq_params = self.acq_form.get_params()
+            # self.log_msg("[run_acquisition] Starting acquisition with parameters:\n" + str(acq_params))
+            self.acq = Acquisition(
+                xrs = self.xrs,
+                motor = self.motor,
+                cam = self.cam,
+                params = acq_params,
+                log_fn = self.thread_safe_log,
+                on_step_completed = self.thread_safe_update_preview,
+            )
 
-        # Launch acquisition in a thread
-        self.thread = threading.Thread(
-            target = self._run_acquisition_thread,
-            daemon = True
-        )
-        self.thread.start()
+            # Launch acquisition in a thread
+            self.acq_thread = threading.Thread(
+                target = self._run_acquisition_thread,
+                daemon = True
+            )
+            self.acq_thread.start()
 
-        self.log_msg("---- Acquisition thread started. ----")
+            self.log_msg("---- Acquisition thread started. ----")
+        except Exception as e:
+            self.xoff()
+            self.acquisition_running = False
+            tk.messagebox.showerror(title="Acquisition error", message=f"Failed to start acquisition:\n {type(e).__name__}: {e}")
 
     def _run_acquisition_thread(self):
-        result = self.acq.run() # Will be executed in the background from self.run_acquisition
+        try:
+            result = self.acq.run()
+        except Exception as e:
+            result = e
+        finally:
+            self.after(0, lambda: self._finish_acquisition(result))
 
-        # Notify Tkinter thread upon finishing acquisition
-        def finish_callback():
-            self.acquisition_running = False
-            if isinstance(result, Exception):
-                self.log_msg(f"[Acquisition] Acquisition failed. {type(result).__name__}: {result}")
-            else:
-                self.log_msg(f"---- Acquisition complete. ----")
-                self.log_msg(f"Raw images saved at {result.meta_path}")
+    def _finish_acquisition(self, result):
+        self.xoff()
+        self.acquisition_running = False
+        self.acq = None
 
-            self.after(0, finish_callback)
+        if isinstance(result, Exception):
+            self.log_msg(f"Acquisition failed. {type(result).__name__}: {result}")
+        else:
+            self.log_msg(f"---- Acquisition complete. ----")
+            self.log_msg(f"Raw images saved at {Path(result.metadata_file).parent.resolve()}")
 
     # ==============================================================
     #    Preview
@@ -637,6 +670,15 @@ class TomographyGUI(tk.Tk):
         if base_path:
             self.acq_form.entries['base_folder'].delete(0, tk.END)
             self.acq_form.entries['base_folder'].insert(0, base_path)
+
+    def browse_dll_path(self):
+        dll_path = filedialog.askopenfilename(
+            title="Select motor DLL file",
+            filetypes=[("DLL files", "*.dll"), ("All files", "*.*")]
+        )
+        if dll_path:
+            self.motor_dll_entry.delete(0, tk.END)
+            self.motor_dll_entry.insert(0, dll_path)
 
 
 
@@ -780,7 +822,7 @@ class TomographyGUI(tk.Tk):
         self.motor_dll_entry = ttk.Entry(motor_port_frame, width=30)
         self.motor_dll_entry.insert(0, DEFAULT_DLLPATH)
         self.motor_dll_entry.grid(row=0, column=1, padx=5, columnspan=2, pady=5)
-        self.btn_motor_dll = ttk.Button(motor_port_frame, text="Browse...").grid(row=0, column=3, padx=5)
+        self.btn_motor_dll = ttk.Button(motor_port_frame, text="Browse...", command=self.browse_dll_path).grid(row=0, column=3, padx=5)
         # Port field
         ttk.Label(motor_port_frame, text="Motor Port:").grid(row=1, column=0)
         self.motor_port_entry = ttk.Entry(motor_port_frame, width=10)

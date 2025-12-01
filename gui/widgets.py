@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-
+from dataclasses import fields
 
 class StatusIndicators:
     """
@@ -115,11 +115,27 @@ class ParamsForm:
     def get_params(self):
         """Devuelve los valores actuales como instancia de la dataclass."""
         kwargs = {}
-        for name, entry in self.entries.items():
-            val = entry.get()
+        for field in fields(self.dataclass_type):
+            name = field.name
+            raw = self.entries[name].get()
+            typ = field.type
 
-            # Convertimos el tipo apropiado basado en la dataclass original
-            field_type = self.dataclass_type.__annotations__[name]
-            kwargs[name] = field_type(val)
+            # Convertir al tipo adecuado
+            if typ is int:
+                val = int(raw)
+            elif typ is float:
+                val = float(raw)
+            else:
+                # fallback => raw string tal cual
+                val = raw
 
+            kwargs[name] = val
         return self.dataclass_type(**kwargs)
+        # for name, entry in self.entries.items():
+        #     val = entry.get()
+
+        #     # Convertimos el tipo apropiado basado en la dataclass original
+        #     field_type = self.dataclass_type.__annotations__[name]
+        #     kwargs[name] = field_type(val)
+
+        # return self.dataclass_type(**kwargs)
