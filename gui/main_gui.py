@@ -407,6 +407,7 @@ class TomographyGUI(tk.Tk):
                 self.volt_entry.insert(0, str(volt))
                 self.curr_entry.delete(0, tk.END)
                 self.curr_entry.insert(0, str(curr))
+                self.log_msg(f"XRS Status = {self.xrs.get_status()}")
                 self.log_msg("-----------------------------------")
         return 0
 
