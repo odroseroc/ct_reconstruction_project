@@ -117,8 +117,8 @@ class AcquisitionIndex():
             filepaths=filepaths,
             angles=np.array(angles, dtype=float),
             device=device,
-            parent_dir=folder,
-            metadata_file=None
+            parent_dir=folder.parent,
+            metadata_file=folder / Path("meta.txt")
         )
 
     def __getitem__(self, index: int):
