@@ -168,11 +168,22 @@ class TomographyGUI(tk.Tk):
     # ===============================================================
 
     def update_status_loop(self):
-        '''Update the states of indicators and buttons'''
-        self.master_tick[0] = (self.master_tick[0] + 1) % 1000
-        self.update_xrs_status()
-        self.update_motor_status()
-        self.update_camera_status()
+        try:
+            self.master_tick[0] = (self.master_tick[0] + 1) % 1000
+            self.update_xrs_status()
+        except Exception as e:
+            self.log_msg(f"[XRS STATUS ERROR] {type(e).__name__}: {e}")
+
+        try:
+            self.update_motor_status()
+        except Exception as e:
+            self.log_msg(f"[MOTOR STATUS ERROR] {type(e).__name__}: {e}")
+
+        try:
+            self.update_camera_status()
+        except Exception as e:
+            self.log_msg(f"[CAM STATUS ERROR] {type(e).__name__}: {e}")
+
         self.after(UPDATE_INTERVAL_MS, self.update_status_loop)
 
     # UPDATE MODULES
