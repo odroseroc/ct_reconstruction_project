@@ -190,14 +190,20 @@ class TomographyGUI(tk.Tk):
     # ---------- X-ray source ----------
     def poll_xrs_status(self):
         # Check interlock status
-        interlock = self.xrs.get_interlock_status()
+        try:
+            interlock = self.xrs.get_interlock_status()
+        except Exception:
+            return
         match interlock:
             case "SIN 0":
                 self.xrs_indicator_flags['INTERLOCK'] = True
             case "SIN 1":
                 self.xrs_indicator_flags['INTERLOCK'] = False
 
-        status = self.xrs.get_status()
+        try:
+            status = self.xrs.get_status()
+        except Exception:
+            return
         match status:
             case "STS 0":  # Awaiting warmup
                 self.xrs_indicator_flags['X_RAY'] = False
@@ -318,7 +324,10 @@ class TomographyGUI(tk.Tk):
 
     # ---------- Motor ----------
     def poll_motor_status(self):
-        positioner_status = self.motor.get_positioner_status()
+        try:
+            positioner_status = self.motor.get_positioner_status()
+        except Exception:
+            return
         self.motor_indicator_flags['REFERENCED'] = not(positioner_status.startswith('0') or positioner_status in ['0F', '10', '11'])
         self.motor_indicator_flags['READY'] = positioner_status in ['32', '33', '34', '35'] and not self.acquisition_running
         self.motor_indicator_flags['MOVING'] = not(positioner_status in ['28', '1E', '1F']) # Indicator is green (True) if NOT moving
