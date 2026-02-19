@@ -1,4 +1,4 @@
-# CT Reconstruction Project
+# Custom Built Scanner for the Hard X-Rays Labotaroty ad KTH
 
 **Status:** 🚧 *Under development*
 
